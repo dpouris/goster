@@ -1,45 +1,105 @@
 package gottp_server
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
+	"net/url"
+	"os"
 )
 
 type ReqHandler func(http.ResponseWriter, *http.Request) error
 
+type Req struct {
+	Method        string
+	URL           *url.URL
+	Header        http.Header
+	Body          io.ReadCloser
+	GetBody       func() (io.ReadCloser, error)
+	ContentLength int64
+	Close         bool
+	Form          url.Values
+	PostForm      url.Values
+	MultipartForm *multipart.Form
+	RemoteAddr    string
+	RequestURI    string
+	Response      *http.Response
+}
+
+type Res struct {
+	Response       http.Response
+	ResponseWriter http.ResponseWriter
+	// Header() http.Header
+
+	// Write([]byte) (int, error)
+
+	// WriteHeader(statusCode int)
+}
+
+func (r *Res) JSON(j any) error {
+	v, err := json.Marshal(r)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		return err
+	}
+
+	_, err = r.ResponseWriter.Write(v)
+
+	return err
+}
+
+func (r *Res) Write(b []byte) (int, error) {
+	br, err := r.Response.Body.Read(b)
+
+	fmt.Println(string(b))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		return 0, err
+	}
+
+	return br, nil
+}
+
 type Routes struct {
-	route   string
-	handler ReqHandler
+	Route   string
+	Handler ReqHandler
 }
 
 type Gottp struct {
-	routes     map[string][]Routes
-	middleware []ReqHandler
+	Routes     map[string][]Routes
+	Middleware []ReqHandler
+	Logger     *log.Logger
+	Logs       []string
 }
 
 func Server() *Gottp {
-	return &Gottp{routes: make(map[string][]Routes, 10), middleware: make([]ReqHandler, 0)}
+	logger := log.New(os.Stdout, "[SERVER] - ", log.LstdFlags)
+	return &Gottp{Routes: make(map[string][]Routes, 10), Middleware: make([]ReqHandler, 0), Logger: logger}
 }
 
 func (g *Gottp) AddGlobalMiddleware(middleware ...ReqHandler) {
-	g.middleware = append(g.middleware, middleware...)
+	g.Middleware = append(g.Middleware, middleware...)
 }
 
 func (g *Gottp) ListenAndServe(port string) {
-	LogInfo("LISTENING ON http://localhost" + port)
+	LogInfo("LISTENING ON http://127.0.0.1"+port, g.Logger)
 	log.Fatal(http.ListenAndServe(port, g))
 }
 
 func (g *Gottp) Base(method string, addr string, handler ReqHandler) error {
-	for _, v := range g.routes[method] {
-		if v.route == addr {
-			LogError(method + " route already exists")
+	for _, v := range g.Routes[method] {
+		if v.Route == addr {
+			LogError(method+" route already exists", g.Logger)
 			return errors.New("route already exists")
 		}
 	}
 
-	g.routes[method] = append(g.routes[method], Routes{route: addr, handler: handler})
+	g.Routes[method] = append(g.Routes[method], Routes{Route: addr, Handler: handler})
 
 	return nil
 }
@@ -75,29 +135,27 @@ func (g *Gottp) ServeHTTP(r http.ResponseWriter, req *http.Request) {
 	// Middleware that handles validity of incoming request method
 	status, err := HandleMethod(g, req)
 
+	// Logger middleware
+	HandleLog(u, m, err, g)
+
 	if err != nil {
-		LogError(err.Error())
 		r.WriteHeader(status)
 		return
 	}
 
-	// Logger middleware
-	HandleLog(u, m)
-
-	head := r.Header()
 	// Write successful header if all went ok
-	MakeSuccessHeader(&head)
-	r.WriteHeader(status)
+	head := r.Header()
+	DefaultHeader(&head)
 
-	if len(g.middleware) > 0 {
-		for _, m := range g.middleware {
+	if len(g.Middleware) > 0 {
+		for _, m := range g.Middleware {
 			m(r, req)
 		}
 	}
 
-	for _, v := range g.routes[m] {
-		if stringU := req.URL.String(); stringU == v.route {
-			v.handler(r, req)
+	for _, v := range g.Routes[m] {
+		if stringU := req.URL.String(); stringU == v.Route {
+			v.Handler(r, req)
 		}
 	}
 }

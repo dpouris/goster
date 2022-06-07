@@ -11,9 +11,9 @@ func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
 
 	allowedMethods := make([]string, 0)
 
-	for k, v := range g.routes {
+	for k, v := range g.Routes {
 		for _, route := range v {
-			if u == route.route {
+			if u == route.Route {
 				allowedMethods = append(allowedMethods, k)
 			}
 		}
@@ -32,6 +32,14 @@ func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
 	return 405, errors.New("405 METHOD NOT ALLOWED")
 }
 
-func HandleLog(route string, method string) {
-	LogInfo("[" + method + "]" + " ON ROUTE " + route)
+func HandleLog(route string, method string, err error, g *Gottp) {
+	if err != nil {
+		l := err.Error()
+		g.Logs = append(g.Logs, l)
+		LogError(l, g.Logger)
+		return
+	}
+	l := "[" + method + "]" + " ON ROUTE " + route
+	g.Logs = append(g.Logs, l)
+	LogInfo(l, g.Logger)
 }

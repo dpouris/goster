@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	Gottp "github.com/dpouris/gottp-server"
 )
+
+type JSONResponse struct {
+	Hey string `json:"hey"`
+	You string `json:"you"`
+}
 
 func main() {
 	g := Gottp.Server()
@@ -18,11 +24,21 @@ func main() {
 	})
 
 	g.Get("/path", func(r http.ResponseWriter, req *http.Request) error {
-		res := make(map[string]any, 10)
-		res["hey"] = "you"
-		marsalled, _ := json.Marshal(res)
-		fmt.Println(res["hey"])
+
+		res := JSONResponse{
+			Hey: "Hello",
+			You: "World",
+		}
+		marsalled, err := json.Marshal(res)
+
+		if err != nil {
+			Gottp.LogError(err.Error(), g.Logger)
+		}
+
+		r.Header().Set("Content-Type", "application/json")
+		r.WriteHeader(http.StatusOK)
 		r.Write(marsalled)
+
 		return nil
 	})
 
@@ -41,6 +57,17 @@ func main() {
 			fmt.Println(err)
 		}
 		r.Write(heyPage)
+		return nil
+	})
+
+	g.Get("/logs", func(r http.ResponseWriter, req *http.Request) error {
+		_, err := r.Write([]byte(strings.Join(g.Logs, "\n")))
+
+		if err != nil {
+			Gottp.LogError(err.Error(), g.Logger)
+		}
+
+		r.Header().Set("Content-Type", "text/plain")
 		return nil
 	})
 
