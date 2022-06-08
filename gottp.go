@@ -1,8 +1,6 @@
 package gottp_server
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"mime/multipart"
@@ -27,28 +25,6 @@ type Req struct {
 	RemoteAddr    string
 	RequestURI    string
 	Response      *http.Response
-}
-
-type Res struct {
-	Header func() http.Header
-
-	Write func([]byte) (int, error)
-
-	WriteHeader func(statusCode int)
-}
-
-// Send back a JSON response. Supply j with a value that's valid marsallable(?) to JSON -> error
-func (r *Res) JSON(j any) error {
-	v, err := json.Marshal(j)
-
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		return err
-	}
-	r.Header().Set("Content-Type", "application/json")
-	_, err = r.Write(v)
-
-	return err
 }
 
 type Routes struct {
@@ -79,26 +55,27 @@ func (g *Gottp) ListenAndServe(p string) {
 	log.Fatal(http.ListenAndServe(p, g))
 }
 
-func (g *Gottp) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	m := req.Method
-	u := req.URL.String()
+func (g *Gottp) ServeHTTP(res http.ResponseWriter, r *http.Request) {
+	m := r.Method
+	u := r.URL.String()
+	n_res := Res{res}
 
 	// Middleware that handles validity of incoming request method
-	status, err := HandleMethod(g, req)
+	status, err := HandleMethod(g, r)
 
 	// Logger middleware
 	HandleLog(u, m, err, g)
 
 	// Transform the ResponseWriter and Request params to be more manageable by end users and adds some useful function middleware
-	n_res, n_req := TransformReq(res, req)
+	n_req := TransformReq(r)
 
 	if err != nil {
-		n_res.WriteHeader(status)
+		res.WriteHeader(status)
 		return
 	}
 
 	// Write successful header if all went ok
-	head := n_res.Header()
+	head := res.Header()
 	DefaultHeader(&head)
 
 	if len(g.Middleware) > 0 {
@@ -108,7 +85,7 @@ func (g *Gottp) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	}
 
 	for _, v := range g.Routes[m] {
-		if stringU := req.URL.String(); stringU == v.Route {
+		if stringU := r.URL.String(); stringU == v.Route {
 			v.Handler(n_res, &n_req)
 		}
 	}

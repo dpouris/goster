@@ -44,12 +44,7 @@ func HandleLog(route string, method string, err error, g *Gottp) {
 	LogInfo(l, g.Logger)
 }
 
-func TransformReq(res http.ResponseWriter, req *http.Request) (Res, Req) {
-	n_res := Res{
-		Header:      res.Header,
-		WriteHeader: res.WriteHeader,
-		Write:       res.Write,
-	}
+func TransformReq(req *http.Request) Req {
 
 	n_req := Req{
 		Method:        req.Method,
@@ -67,5 +62,12 @@ func TransformReq(res http.ResponseWriter, req *http.Request) (Res, Req) {
 		Response:      req.Response,
 	}
 
-	return n_res, n_req
+	return n_req
+}
+
+// Adds basic headers
+func DefaultHeader(h *http.Header) {
+	h.Set("Access-Control-Allow-Origin", "*")
+	h.Set("Connection", "Keep-Alive")
+	h.Set("Keep-Alive", "timeout=5, max=997")
 }

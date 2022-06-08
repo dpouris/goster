@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -28,24 +27,30 @@ func main() {
 			Hey: "Hello",
 			You: "World",
 		}
-		marsalled, err := json.Marshal(res)
 
-		if err != nil {
-			Gottp.LogError(err.Error(), g.Logger)
-		}
-
-		r.Header().Set("Content-Type", "application/json")
-		r.WriteHeader(http.StatusOK)
-		r.Write(marsalled)
+		r.NewHeaders(map[string]string{
+			"Content-Type": "application/json",
+		}, 200)
+		r.JSON(res)
 
 		return nil
 	})
 
 	g.Post("/path", func(r Gottp.Res, req *Gottp.Req) error {
-		r.Write([]byte("This is a post :P"))
-		res := make([]byte, 20*1024)
-		req.Body.Read(res)
-		fmt.Println(string(res))
+		db := make([]byte, req.ContentLength)
+		req.Body.Read(db)
+		err := ioutil.WriteFile("./examples/fake_db.txt", db, 0666)
+
+		if err != nil {
+			return err
+		}
+
+		r.NewHeaders(map[string]string{
+			"Content-Type": "application/json",
+		}, http.StatusCreated)
+
+		r.JSON(db)
+
 		return nil
 	})
 
