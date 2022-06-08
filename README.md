@@ -36,12 +36,12 @@ import (
 func main() {
 	g := Gottp.Server()
 
-	g.Get("/hey", func(r http.ResponseWriter, req *http.Request) error {
+	g.Get("/hey", func(r Gottp.Res, req *Gottp.Req) error {
         // Loads the HTML file
 		heyPage, err := ioutil.ReadFile("./examples/hey.html")
 
 		if err != nil {
-            Gottp.LogError(err.Error())
+            Gottp.LogError(err.Error(), g.Logger)
 		}
 
         // Write the HTML to the response body
@@ -49,7 +49,7 @@ func main() {
 		return nil
 	})
 
-	g.Post("/hey", func(r http.ResponseWriter, req *http.Request) error {
+	g.Post("/hey", func(r Gottp.Res, req *Gottp.Req) error {
 		// A map that is marshalled to JSON
 		log_map := map[string]string{
 			"hey": "you",
@@ -60,7 +60,7 @@ func main() {
 		err := r.JSON(log_map)
 
 		if err != nil {
-            Gottp.LogError(err.Error())
+            Gottp.LogError(err.Error(), g.Logger)
 		}
 
 		return nil
@@ -82,9 +82,9 @@ g := Gottp.Server()
 
 ### **GET**
 ```go
-	g.Get("/path", func(r Gottp.Res, req *Gottp.Req) error {
-		// Handler logic
-	})
+g.Get("/path", func(r Gottp.Res, req *Gottp.Req) error {
+	// Handler logic
+})
 ```
 
 ### **POST**
