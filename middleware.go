@@ -20,16 +20,16 @@ func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
 	}
 
 	if len(allowedMethods) <= 0 {
-		return 404, errors.New("404 NOT FOUND")
+		return http.StatusNotFound, errors.New("404 NOT FOUND")
 	}
 
 	for _, v := range allowedMethods {
 		if v == m {
-			return 200, nil
+			return http.StatusOK, nil
 		}
 	}
 
-	return 405, errors.New("405 METHOD NOT ALLOWED")
+	return http.StatusMethodNotAllowed, errors.New("405 METHOD NOT ALLOWED")
 }
 
 func HandleLog(route string, method string, err error, g *Gottp) {
@@ -42,4 +42,30 @@ func HandleLog(route string, method string, err error, g *Gottp) {
 	l := "[" + method + "]" + " ON ROUTE " + route
 	g.Logs = append(g.Logs, l)
 	LogInfo(l, g.Logger)
+}
+
+func TransformReq(res http.ResponseWriter, req *http.Request) (Res, Req) {
+	n_res := Res{
+		Header:      res.Header,
+		WriteHeader: res.WriteHeader,
+		Write:       res.Write,
+	}
+
+	n_req := Req{
+		Method:        req.Method,
+		URL:           req.URL,
+		Header:        req.Header,
+		Body:          req.Body,
+		GetBody:       req.GetBody,
+		ContentLength: req.ContentLength,
+		Close:         req.Close,
+		Form:          req.Form,
+		PostForm:      req.PostForm,
+		MultipartForm: req.MultipartForm,
+		RemoteAddr:    req.RemoteAddr,
+		RequestURI:    req.RequestURI,
+		Response:      req.Response,
+	}
+
+	return n_res, n_req
 }

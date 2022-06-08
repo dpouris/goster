@@ -2,7 +2,6 @@ package gottp_server
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +11,7 @@ import (
 	"os"
 )
 
-type ReqHandler func(http.ResponseWriter, *http.Request) error
+type ReqHandler func(Res, *Req) error
 
 type Req struct {
 	Method        string
@@ -31,38 +30,25 @@ type Req struct {
 }
 
 type Res struct {
-	Response       http.Response
-	ResponseWriter http.ResponseWriter
-	// Header() http.Header
+	Header func() http.Header
 
-	// Write([]byte) (int, error)
+	Write func([]byte) (int, error)
 
-	// WriteHeader(statusCode int)
+	WriteHeader func(statusCode int)
 }
 
+// Send back a JSON response. Supply j with a value that's valid marsallable(?) to JSON -> error
 func (r *Res) JSON(j any) error {
-	v, err := json.Marshal(r)
+	v, err := json.Marshal(j)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		fmt.Fprintln(os.Stderr, err.Error())
 		return err
 	}
-
-	_, err = r.ResponseWriter.Write(v)
+	r.Header().Set("Content-Type", "application/json")
+	_, err = r.Write(v)
 
 	return err
-}
-
-func (r *Res) Write(b []byte) (int, error) {
-	br, err := r.Response.Body.Read(b)
-
-	fmt.Println(string(b))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		return 0, err
-	}
-
-	return br, nil
 }
 
 type Routes struct {
@@ -77,85 +63,53 @@ type Gottp struct {
 	Logs       []string
 }
 
+// New Gottp.Server instance -> *Gottp
 func Server() *Gottp {
 	logger := log.New(os.Stdout, "[SERVER] - ", log.LstdFlags)
 	return &Gottp{Routes: make(map[string][]Routes, 10), Middleware: make([]ReqHandler, 0), Logger: logger}
 }
 
-func (g *Gottp) AddGlobalMiddleware(middleware ...ReqHandler) {
-	g.Middleware = append(g.Middleware, middleware...)
+// Pass in a ReqHandler or ...ReqHandler type function(s) to handle incoming http requests on every single request
+func (g *Gottp) AddGlobalMiddleware(m ...ReqHandler) {
+	g.Middleware = append(g.Middleware, m...)
 }
 
-func (g *Gottp) ListenAndServe(port string) {
-	LogInfo("LISTENING ON http://127.0.0.1"+port, g.Logger)
-	log.Fatal(http.ListenAndServe(port, g))
+func (g *Gottp) ListenAndServe(p string) {
+	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
+	log.Fatal(http.ListenAndServe(p, g))
 }
 
-func (g *Gottp) Base(method string, addr string, handler ReqHandler) error {
-	for _, v := range g.Routes[method] {
-		if v.Route == addr {
-			LogError(method+" route already exists", g.Logger)
-			return errors.New("route already exists")
-		}
-	}
-
-	g.Routes[method] = append(g.Routes[method], Routes{Route: addr, Handler: handler})
-
-	return nil
-}
-
-func (g *Gottp) Get(route string, handler ReqHandler) error {
-	err := g.Base("GET", route, handler)
-	return err
-}
-
-func (g *Gottp) Post(route string, handler ReqHandler) error {
-	err := g.Base("POST", route, handler)
-	return err
-}
-
-func (g *Gottp) Patch(route string, handler ReqHandler) error {
-	err := g.Base("PATCH", route, handler)
-	return err
-}
-
-func (g *Gottp) Put(route string, handler ReqHandler) error {
-	err := g.Base("PUT", route, handler)
-	return err
-}
-
-func (g *Gottp) Delete(route string, handler ReqHandler) error {
-	err := g.Base("DELETE", route, handler)
-	return err
-}
-
-func (g *Gottp) ServeHTTP(r http.ResponseWriter, req *http.Request) {
+func (g *Gottp) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	m := req.Method
 	u := req.URL.String()
+
 	// Middleware that handles validity of incoming request method
 	status, err := HandleMethod(g, req)
 
 	// Logger middleware
 	HandleLog(u, m, err, g)
 
+	// Transform the ResponseWriter and Request params to be more managable by end users and adds some useful function middleware
+	n_res, n_req := TransformReq(res, req)
+
 	if err != nil {
-		r.WriteHeader(status)
+		n_res.WriteHeader(status)
 		return
 	}
 
 	// Write successful header if all went ok
-	head := r.Header()
+	head := n_res.Header()
 	DefaultHeader(&head)
 
 	if len(g.Middleware) > 0 {
 		for _, m := range g.Middleware {
-			m(r, req)
+			m(n_res, &n_req)
 		}
 	}
 
 	for _, v := range g.Routes[m] {
 		if stringU := req.URL.String(); stringU == v.Route {
-			v.Handler(r, req)
+			v.Handler(n_res, &n_req)
 		}
 	}
 }

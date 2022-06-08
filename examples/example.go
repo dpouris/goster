@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	Gottp "github.com/dpouris/gottp-server"
 )
@@ -18,12 +17,12 @@ type JSONResponse struct {
 func main() {
 	g := Gottp.Server()
 
-	g.AddGlobalMiddleware(func(r http.ResponseWriter, req *http.Request) error {
+	g.AddGlobalMiddleware(func(r Gottp.Res, req *Gottp.Req) error {
 		fmt.Println("middleware")
 		return nil
 	})
 
-	g.Get("/path", func(r http.ResponseWriter, req *http.Request) error {
+	g.Get("/path", func(r Gottp.Res, req *Gottp.Req) error {
 
 		res := JSONResponse{
 			Hey: "Hello",
@@ -42,7 +41,7 @@ func main() {
 		return nil
 	})
 
-	g.Post("/path", func(r http.ResponseWriter, req *http.Request) error {
+	g.Post("/path", func(r Gottp.Res, req *Gottp.Req) error {
 		r.Write([]byte("This is a post :P"))
 		res := make([]byte, 20*1024)
 		req.Body.Read(res)
@@ -50,7 +49,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("/hey", func(r http.ResponseWriter, req *http.Request) error {
+	g.Get("/hey", func(r Gottp.Res, req *Gottp.Req) error {
 		heyPage, err := ioutil.ReadFile("./examples/hey.html")
 
 		if err != nil {
@@ -60,14 +59,18 @@ func main() {
 		return nil
 	})
 
-	g.Get("/logs", func(r http.ResponseWriter, req *http.Request) error {
-		_, err := r.Write([]byte(strings.Join(g.Logs, "\n")))
+	g.Get("/logs", func(r Gottp.Res, req *Gottp.Req) error {
+		log_map := make(map[int]any, len(g.Logs))
+
+		for i, v := range g.Logs {
+			log_map[i] = v
+		}
+
+		err := r.JSON(log_map)
 
 		if err != nil {
 			Gottp.LogError(err.Error(), g.Logger)
 		}
-
-		r.Header().Set("Content-Type", "text/plain")
 		return nil
 	})
 
