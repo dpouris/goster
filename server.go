@@ -89,7 +89,7 @@ func (g *Gottp) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// Logger middleware
 	HandleLog(u, m, err, g)
 
-	// Transform the ResponseWriter and Request params to be more managable by end users and adds some useful function middleware
+	// Transform the ResponseWriter and Request params to be more manageable by end users and adds some useful function middleware
 	n_res, n_req := TransformReq(res, req)
 
 	if err != nil {
