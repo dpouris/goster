@@ -1,4 +1,3 @@
-module github.com/dpouris/gottp-server
+module github.com/dpouris/gottp-client
 
 go 1.18
-

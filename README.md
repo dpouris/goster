@@ -7,7 +7,7 @@
 
 
 
-Gottp is an HTTP server that can be used to serve static files and make simple API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
+Gottp is a siple HTTP library that can be used to serve static files and make simple API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
 -
 <br>
 
@@ -15,7 +15,7 @@ Gottp is an HTTP server that can be used to serve static files and make simple A
 ## **INSTALLATION**
 
 ```shell
-$ go get -u github.com/dpouris/gottp-server
+$ go get -u github.com/dpouris/gottp-client
 ```
 <br>
 

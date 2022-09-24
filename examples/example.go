@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Gottp "github.com/dpouris/gottp-server"
+	Gottp "github.com/dpouris/gottp-client"
 )
 
 type JSONResponse struct {

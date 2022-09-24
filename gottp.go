@@ -1,4 +1,4 @@
-package gottp_server
+package gottp_client
 
 import (
 	"io"
@@ -78,10 +78,9 @@ func (g *Gottp) ServeHTTP(res http.ResponseWriter, r *http.Request) {
 	head := res.Header()
 	DefaultHeader(&head)
 
-	if len(g.Middleware) > 0 {
-		for _, m := range g.Middleware {
-			m(n_res, &n_req)
-		}
+	for _, m := range g.Middleware {
+		m(n_res, &n_req)
+
 	}
 
 	for _, v := range g.Routes[m] {

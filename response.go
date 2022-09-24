@@ -1,4 +1,4 @@
-package gottp_server
+package gottp_client
 
 import (
 	"encoding/json"
