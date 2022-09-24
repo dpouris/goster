@@ -1,8 +1,8 @@
-# GOTTP SERVER
-[![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/gottp-server)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/gottp-server)](https://goreportcard.com/report/github.com/dpouris/gottp-server)
-[![License](https://img.shields.io/github/license/dpouris/gottp-server)](https://github.com/dpouris/gottp-server/blob/master/LICENSE)
-![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/gottp-server)
+# GOTTP CLIENT
+[![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/gottp-client)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/gottp-client)](https://goreportcard.com/report/github.com/dpouris/gottp-client)
+[![License](https://img.shields.io/github/license/dpouris/gottp-client)](https://github.com/dpouris/gottp-client/blob/master/LICENSE)
+![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/gottp-client)
 
 
 
@@ -30,7 +30,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Gottp "github.com/dpouris/gottp-server"
+	Gottp "github.com/dpouris/gottp-client"
 )
 
 func main() {
@@ -111,7 +111,7 @@ g.AddGlobalMiddleware(func(r http.ResponseWriter, req *http.Request) error {
 
 By default Gottp handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Gottp server and supply `Gottp.Logger` to the Log functions.
 ```go
-import Gottp "github.com/dpouris/gottp-server"
+import Gottp "github.com/dpouris/gottp-client"
 
 func main() {
 	g := Gottp.Server()
