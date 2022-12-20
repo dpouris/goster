@@ -5,15 +5,12 @@ import (
 	"net/http"
 )
 
-func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
-	u := req.URL.String()
-	m := req.Method
-
+func HandleMethod(g *Gottp, url, method string) (status int, err error) {
 	allowedMethods := make([]string, 0)
 
-	for name := range g.Routes[m] {
-		if u == name {
-			allowedMethods = append(allowedMethods, m)
+	for name := range g.Routes[method] {
+		if url == name {
+			allowedMethods = append(allowedMethods, method)
 		}
 	}
 
@@ -22,7 +19,7 @@ func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
 	}
 
 	for _, v := range allowedMethods {
-		if v == m {
+		if v == method {
 			return http.StatusOK, nil
 		}
 	}

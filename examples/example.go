@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -9,21 +10,35 @@ import (
 )
 
 func main() {
-	g := Gottp.Server()
+	g := Gottp.NewServer()
 
 	g.AddGlobalMiddleware(func(ctx *Gottp.Ctx) error {
-		fmt.Println("middleware")
+		fmt.Println("global middleware")
 		return nil
 	})
 
-	g.Get("path/", func(ctx *Gottp.Ctx) error {
+	g.Get("/", func(ctx *Gottp.Ctx) error {
+		q, exists := ctx.Get("q")
+		msg := "Hello and welcome to the test server of gottp :D"
+		if exists {
+			if q == "69" {
+				msg = "AHA! You found the secret message with the code 69! Your treasure is this 8====D~ 8="
+			} else {
+				msg = fmt.Sprintf("Almost there. %s isn't correct. You could try again but I wouldn't blame you if you gave up :c", q)
+			}
+		}
+		ctx.ResponseWriter.Write([]byte(msg))
+		return nil
+	})
 
+	g.Get("db/", func(ctx *Gottp.Ctx) error {
+		name, _ := ctx.Meta.Get("yourName")
 		res := struct {
 			Hey string `json:"hey"`
 			You string `json:"you"`
 		}{
 			Hey: "Hello",
-			You: "World",
+			You: name,
 		}
 
 		ctx.ResponseWriter.NewHeaders(map[string]string{
@@ -34,18 +49,42 @@ func main() {
 		return nil
 	})
 
+	g.Get("db/kati/:id", func(ctx *Gottp.Ctx) error {
+		db, exists := ctx.Meta.Get("db")
+
+		if !exists {
+			db = "{}"
+		}
+		ctx.ResponseWriter.Write([]byte(fmt.Sprintf("hello this is a multi route page at db/%s", db)))
+
+		return nil
+	})
+
 	g.Get("path/:name", func(ctx *Gottp.Ctx) error {
-		name := ctx.Params.Get("name")
+		name, exists := ctx.Params.Get("name")
+
+		if !exists {
+			msg := "please specify a corrent route"
+			ctx.ResponseWriter.Write([]byte(msg))
+			return errors.New(msg)
+		}
 		ctx.ResponseWriter.Write([]byte(fmt.Sprintf("Hi, my name is %s", name)))
 		return nil
 	})
 
-	g.Post("path/", func(ctx *Gottp.Ctx) error {
+	g.Post("db/", func(ctx *Gottp.Ctx) error {
 		db := make([]byte, ctx.Request.ContentLength)
 		ctx.Request.Body.Read(db)
 		err := ioutil.WriteFile("./examples/fake_db.txt", db, 0666)
 
 		if err != nil {
+			err_json := struct {
+				Msg string `json:"msg"`
+			}{
+				Msg: err.Error(),
+			}
+			ctx.ResponseWriter.JSON(err_json)
+			ctx.ResponseWriter.WriteHeader(500)
 			return err
 		}
 
@@ -59,7 +98,7 @@ func main() {
 	})
 
 	g.Get("hey/", func(ctx *Gottp.Ctx) error {
-		heyPage, err := ioutil.ReadFile("./examples/hey.html")
+		heyPage, err := ioutil.ReadFile("./hey.html")
 
 		if err != nil {
 			fmt.Println(err)
