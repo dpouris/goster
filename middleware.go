@@ -11,11 +11,9 @@ func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
 
 	allowedMethods := make([]string, 0)
 
-	for k, v := range g.Routes {
-		for _, route := range v {
-			if u == route.Route {
-				allowedMethods = append(allowedMethods, k)
-			}
+	for name := range g.Routes[m] {
+		if u == name {
+			allowedMethods = append(allowedMethods, m)
 		}
 	}
 
@@ -44,30 +42,11 @@ func HandleLog(route string, method string, err error, g *Gottp) {
 	LogInfo(l, g.Logger)
 }
 
-func TransformReq(req *http.Request) Req {
-
-	n_req := Req{
-		Method:        req.Method,
-		URL:           req.URL,
-		Header:        req.Header,
-		Body:          req.Body,
-		GetBody:       req.GetBody,
-		ContentLength: req.ContentLength,
-		Close:         req.Close,
-		Form:          req.Form,
-		PostForm:      req.PostForm,
-		MultipartForm: req.MultipartForm,
-		RemoteAddr:    req.RemoteAddr,
-		RequestURI:    req.RequestURI,
-		Response:      req.Response,
-	}
-
-	return n_req
-}
-
 // Adds basic headers
 func DefaultHeader(h *http.Header) {
 	h.Set("Access-Control-Allow-Origin", "*")
+	h.Set("Cross-Origin-Opener-Policy", "same-origin")
+
 	h.Set("Connection", "Keep-Alive")
 	h.Set("Keep-Alive", "timeout=5, max=997")
 }
