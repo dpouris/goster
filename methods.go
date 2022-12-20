@@ -2,6 +2,7 @@ package gottp_client
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 )
 
@@ -18,6 +19,12 @@ func (g *Gottp) New(m string, u string, h RequestHandler) error {
 	if len(strings.Split(u, ":")) != 1 {
 		url_type = "dynamic"
 	}
+
+	if u[0] != '/' {
+		u = "/" + u
+	}
+
+	fmt.Println(u)
 
 	g.Routes[m][u] = Route{Type: url_type, Handler: h}
 

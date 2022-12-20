@@ -34,13 +34,13 @@ func main() {
 		return nil
 	})
 
-	g.Get("/path/:name", func(ctx *Gottp.Ctx) error {
+	g.Get("path/:name", func(ctx *Gottp.Ctx) error {
 		name := ctx.Params.Get("name")
 		ctx.ResponseWriter.Write([]byte(fmt.Sprintf("Hi, my name is %s", name)))
 		return nil
 	})
 
-	g.Post("/path", func(ctx *Gottp.Ctx) error {
+	g.Post("path/", func(ctx *Gottp.Ctx) error {
 		db := make([]byte, ctx.Request.ContentLength)
 		ctx.Request.Body.Read(db)
 		err := ioutil.WriteFile("./examples/fake_db.txt", db, 0666)
@@ -58,7 +58,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("/hey", func(ctx *Gottp.Ctx) error {
+	g.Get("hey/", func(ctx *Gottp.Ctx) error {
 		heyPage, err := ioutil.ReadFile("./examples/hey.html")
 
 		if err != nil {
@@ -68,7 +68,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("/logs", func(ctx *Gottp.Ctx) error {
+	g.Get("logs/", func(ctx *Gottp.Ctx) error {
 		log_map := make(map[int]any, len(g.Logs))
 
 		for i, v := range g.Logs {
