@@ -6,14 +6,19 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Goster "github.com/dpouris/goster"
+	Goster "github.com/dpouris/goster/goster"
 )
 
 func main() {
 	g := Goster.NewServer()
 
-	g.AddGlobalMiddleware(func(ctx *Goster.Ctx) error {
-		fmt.Println("global middleware")
+	g.Use("/", func(ctx *Goster.Ctx) error {
+		fmt.Println("\"/\" middleware")
+		return nil
+	})
+
+	g.UseGlobal(func(ctx *Goster.Ctx) error {
+		fmt.Println("global!!")
 		return nil
 	})
 
@@ -27,7 +32,7 @@ func main() {
 				msg = fmt.Sprintf("Almost there. %s isn't correct. You could try again but I wouldn't blame you if you gave up :c", q)
 			}
 		}
-		ctx.ResponseWriter.Write([]byte(msg))
+		ctx.Response.Write([]byte(msg))
 		return nil
 	})
 
@@ -41,10 +46,10 @@ func main() {
 			You: name,
 		}
 
-		ctx.ResponseWriter.NewHeaders(map[string]string{
+		ctx.Response.NewHeaders(map[string]string{
 			"Content-Type": "application/json",
 		}, 200)
-		ctx.ResponseWriter.JSON(res)
+		ctx.Response.JSON(res)
 
 		return nil
 	})
@@ -55,7 +60,7 @@ func main() {
 		if !exists {
 			db = "{}"
 		}
-		ctx.ResponseWriter.Write([]byte(fmt.Sprintf("hello this is a multi route page at db/%s", db)))
+		ctx.Response.Write([]byte(fmt.Sprintf("hello this is a multi route page at db/%s", db)))
 
 		return nil
 	})
@@ -65,10 +70,10 @@ func main() {
 
 		if !exists {
 			msg := "please specify a corrent route"
-			ctx.ResponseWriter.Write([]byte(msg))
+			ctx.Response.Write([]byte(msg))
 			return errors.New(msg)
 		}
-		ctx.ResponseWriter.Write([]byte(fmt.Sprintf("Hi, my name is %s", name)))
+		ctx.Response.Write([]byte(fmt.Sprintf("Hi, my name is %s", name)))
 		return nil
 	})
 
@@ -83,16 +88,16 @@ func main() {
 			}{
 				Msg: err.Error(),
 			}
-			ctx.ResponseWriter.JSON(err_json)
-			ctx.ResponseWriter.WriteHeader(500)
+			ctx.Response.JSON(err_json)
+			ctx.Response.WriteHeader(500)
 			return err
 		}
 
-		ctx.ResponseWriter.NewHeaders(map[string]string{
+		ctx.Response.NewHeaders(map[string]string{
 			"Content-Type": "application/json",
 		}, http.StatusCreated)
 
-		ctx.ResponseWriter.JSON(db)
+		ctx.Response.JSON(db)
 
 		return nil
 	})
@@ -103,7 +108,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		ctx.ResponseWriter.Write(heyPage)
+		ctx.Response.Write(heyPage)
 		return nil
 	})
 
@@ -114,7 +119,7 @@ func main() {
 			log_map[i] = v
 		}
 
-		err := ctx.ResponseWriter.JSON(log_map)
+		err := ctx.Response.JSON(log_map)
 
 		if err != nil {
 			Goster.LogError(err.Error(), g.Logger)
