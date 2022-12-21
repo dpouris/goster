@@ -54,13 +54,13 @@ func (r Response) Header() http.Header {
 }
 
 func cleanEmptyBytes(b *[]byte) {
-	new_b := []byte{}
+	cleaned := []byte{}
 
 	for _, v := range *b {
 		if v == 0 {
 			break
 		}
-		new_b = append(new_b, v)
+		cleaned = append(cleaned, v)
 	}
-	*b = new_b
+	*b = cleaned
 }

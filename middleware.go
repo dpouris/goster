@@ -15,7 +15,7 @@ func HandleMethod(g *Gottp, url, method string) (status int, err error) {
 	}
 
 	if len(allowedMethods) <= 0 {
-		return http.StatusNotFound, errors.New("404 NOT FOUND")
+		return http.StatusNotFound, errors.New("404 not found")
 	}
 
 	for _, v := range allowedMethods {
@@ -24,7 +24,7 @@ func HandleMethod(g *Gottp, url, method string) (status int, err error) {
 		}
 	}
 
-	return http.StatusMethodNotAllowed, errors.New("405 METHOD NOT ALLOWED")
+	return http.StatusMethodNotAllowed, errors.New("405 method not allowed")
 }
 
 func HandleLog(route string, method string, err error, g *Gottp) {

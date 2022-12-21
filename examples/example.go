@@ -75,7 +75,7 @@ func main() {
 	g.Post("db/", func(ctx *Gottp.Ctx) error {
 		db := make([]byte, ctx.Request.ContentLength)
 		ctx.Request.Body.Read(db)
-		err := ioutil.WriteFile("./examples/fake_db.txt", db, 0666)
+		err := ioutil.WriteFile("./fake_db.txt", db, 0666)
 
 		if err != nil {
 			err_json := struct {

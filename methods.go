@@ -14,9 +14,9 @@ func (g *Gottp) New(m string, u string, h RequestHandler) error {
 		}
 	}
 
-	url_type := "normal"
+	routeType := "normal"
 	if strings.Contains(u, ":") {
-		url_type = "dynamic"
+		routeType = "dynamic"
 	}
 
 	if u[0] != '/' {
@@ -27,7 +27,7 @@ func (g *Gottp) New(m string, u string, h RequestHandler) error {
 		u = u[:len(u)-1]
 	}
 
-	g.Routes[m][u] = Route{Type: url_type, Handler: h}
+	g.Routes[m][u] = Route{Type: routeType, Handler: h}
 
 	return nil
 }

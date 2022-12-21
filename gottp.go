@@ -1,6 +1,7 @@
 package gottp_client
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -75,7 +76,7 @@ func (g *Gottp) ListenAndServe(p string) {
 func (g *Gottp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m := r.Method
 	u := r.URL.String()
-	n_res := Response{w}
+	res := Response{w}
 
 	// parses query params if there are any and removes them from url effectively transforming it from /path/path2?q=v -> /path/path2
 	params, err := parseParams(&u)
@@ -87,33 +88,36 @@ func (g *Gottp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		meta.Params.values = map[string]string{}
 	}
 
-	route, exists := g.Routes[m][u]
+	route, routeExists := g.Routes[m][u]
 
-	if !exists {
+	if !routeExists {
 		for name, route := range g.Routes[m] {
-			if route.Type == "dynamic" {
-				if matched_route, err := matchDynamicRoute(u, name); err == nil {
-					new_route := Route{
-						Type:         "normal",
-						Handler:      route.Handler,
-						DynamicRoute: matched_route,
-					}
-					g.Routes[m][matched_route.FullPath] = new_route
-
-					meta.Params.values[g.Routes[m][u].DynamicRoute.Identifier] = matched_route.IdentifierValue
-					defer route.Handler(&Ctx{ResponseWriter: n_res, Request: r, Meta: meta})
-					break
-				}
+			if route.Type != "dynamic" {
+				continue
 			}
+
+			matchedRoute, err := matchDynamicRoute(u, name)
+			if err != nil {
+				fmt.Fprint(g.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
+				continue
+			}
+
+			newRoute := Route{
+				Type:         "normal",
+				Handler:      route.Handler,
+				DynamicRoute: matchedRoute,
+			}
+			g.Routes[m][matchedRoute.FullPath] = newRoute
+			meta.Params.values[g.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
+
+			defer route.Handler(&Ctx{ResponseWriter: res, Request: r, Meta: meta})
+			break
 		}
 	} else {
 		if len(route.DynamicRoute.Identifier) > 0 {
-			meta.Params.values[g.Routes[m][u].DynamicRoute.Identifier] = g.Routes[m][u].DynamicRoute.IdentifierValue
-			defer route.Handler(&Ctx{ResponseWriter: n_res, Request: r, Meta: meta})
-		} else {
-			defer route.Handler(&Ctx{ResponseWriter: n_res, Request: r, Meta: meta})
+			meta.Params.values[route.DynamicRoute.Identifier] = g.Routes[m][u].DynamicRoute.IdentifierValue
 		}
-
+		defer route.Handler(&Ctx{ResponseWriter: res, Request: r, Meta: meta})
 	}
 
 	// Middleware that handles validity of incoming request method
@@ -132,7 +136,7 @@ func (g *Gottp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	DefaultHeader(&head)
 
 	for _, m := range g.Middleware {
-		m(&Ctx{ResponseWriter: n_res, Request: r})
+		m(&Ctx{ResponseWriter: res, Request: r})
 	}
 
 }
