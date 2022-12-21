@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Gottp "github.com/dpouris/gottp-client"
+	Gottp "github.com/dpouris/goster"
 )
 
 func main() {

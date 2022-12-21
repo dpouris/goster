@@ -1,13 +1,13 @@
-# GOTTP CLIENT
-[![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/gottp-client)
-[![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/gottp-client)](https://goreportcard.com/report/github.com/dpouris/gottp-client)
-[![License](https://img.shields.io/github/license/dpouris/gottp-client)](https://github.com/dpouris/gottp-client/blob/master/LICENSE)
-![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/gottp-client)
+# Goster
+[![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/goster)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/goster)](https://goreportcard.com/report/github.com/dpouris/goster)
+[![License](https://img.shields.io/github/license/dpouris/goster)](https://github.com/dpouris/goster/blob/master/LICENSE)
+![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/goster)
 
 
 
 
-Gottp is a siple HTTP library that can be used to serve static files and make simple API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
+Goster is a siple HTTP library that can be used to serve static files and make simple API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
 -
 <br>
 
@@ -15,7 +15,7 @@ Gottp is a siple HTTP library that can be used to serve static files and make si
 ## **INSTALLATION**
 
 ```shell
-$ go get -u github.com/dpouris/gottp-client
+$ go get -u github.com/dpouris/goster
 ```
 <br>
 
@@ -30,18 +30,18 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Gottp "github.com/dpouris/gottp-client"
+	Goster "github.com/dpouris/goster"
 )
 
 func main() {
-	g := Gottp.Server()
+	g := Goster.Server()
 
-	g.Get("/hey", func(r Gottp.Res, req *Gottp.Req) error {
+	g.Get("/hey", func(r Goster.Res, req *Goster.Req) error {
         // Loads the HTML file
 		heyPage, err := ioutil.ReadFile("./examples/hey.html")
 
 		if err != nil {
-            Gottp.LogError(err.Error(), g.Logger)
+            Goster.LogError(err.Error(), g.Logger)
 		}
 
         // Write the HTML to the response body
@@ -49,7 +49,7 @@ func main() {
 		return nil
 	})
 
-	g.Post("/hey", func(r Gottp.Res, req *Gottp.Req) error {
+	g.Post("/hey", func(r Goster.Res, req *Goster.Req) error {
 		// A map that is marshalled to JSON
 		log_map := map[string]string{
 			"hey": "you",
@@ -60,7 +60,7 @@ func main() {
 		err := r.JSON(log_map)
 
 		if err != nil {
-            Gottp.LogError(err.Error(), g.Logger)
+            Goster.LogError(err.Error(), g.Logger)
 		}
 
 		return nil
@@ -77,19 +77,19 @@ func main() {
 
 ### **New Server**
 ```go
-g := Gottp.Server()
+g := Goster.Server()
 ```
 
 ### **GET**
 ```go
-g.Get("/path", func(r Gottp.Res, req *Gottp.Req) error {
+g.Get("/path", func(r Goster.Res, req *Goster.Req) error {
 	// Handler logic
 })
 ```
 
 ### **POST**
 ```go
-g.Post("/path", func(r Gottp.Res, req *Gottp.Req) error {
+g.Post("/path", func(r Goster.Res, req *Goster.Req) error {
 		// Handler logic
 	})
 ```
@@ -109,17 +109,17 @@ g.AddGlobalMiddleware(func(r http.ResponseWriter, req *http.Request) error {
 
 ## **LOGGING**
 
-By default Gottp handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Gottp server and supply `Gottp.Logger` to the Log functions.
+By default Goster handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Goster server and supply `Goster.Logger` to the Log functions.
 ```go
-import Gottp "github.com/dpouris/gottp-client"
+import Goster "github.com/dpouris/goster"
 
 func main() {
-	g := Gottp.Server()
+	g := Goster.Server()
 
     // Logs to stdout
-    Gottp.LogInfo("This is an info message", g.Logger)
-    Gottp.LogWarning("This is an warning message", g.Logger)
-    Gottp.LogError("This is an error message", g.Logger)
+    Goster.LogInfo("This is an info message", g.Logger)
+    Goster.LogWarning("This is an warning message", g.Logger)
+    Goster.LogError("This is an error message", g.Logger)
 }
 ```
 ```shell
@@ -132,10 +132,10 @@ func main() {
 
 ### **All logs**
 
-You can access all the logs on the `Gottp.Logs` field.
+You can access all the logs on the `Goster.Logs` field.
 
 ```go
-g.Get("/logs", func(r Gottp.Res, req *Gottp.Req) error {
+g.Get("/logs", func(r Goster.Res, req *Goster.Req) error {
 		log_map := make(map[int]any, len(g.Logs))
 
 		for i, v := range g.Logs {
@@ -145,7 +145,7 @@ g.Get("/logs", func(r Gottp.Res, req *Gottp.Req) error {
 		err := r.JSON(log_map)
 
 		if err != nil {
-			Gottp.LogError(err.Error(), g.Logger)
+			Goster.LogError(err.Error(), g.Logger)
 		}
 		return nil
 	})
@@ -157,5 +157,5 @@ g.Get("/logs", func(r Gottp.Res, req *Gottp.Req) error {
 	{
 		"0": "[GET] ON ROUTE /hey",
 		"1": "[GET] ON ROUTE /logs"
-	}	// Logs are stored in the Logs field of Gottp instance
+	}	// Logs are stored in the Logs field of Goster instance
 	```
