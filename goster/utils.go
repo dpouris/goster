@@ -9,10 +9,10 @@ import (
 // Pass in a url and see if there're parameters in it. If there are parseParams will return a Params struct and will remove them from the url that's passed in, if there aren't any, parseParams will return an error describing the error that occurred and will still clean the url
 func parseParams(url *string) (Params, error) {
 	paramsPtrn := regexp.MustCompile(`\?.+(\/)?`)
-	URLPtrn := regexp.MustCompile(`^(\/\w+)+(\?)?`)
+	pathPtrn := regexp.MustCompile(`^(\/\w+)+(\?)?`)
 
 	defer func() {
-		*url = strings.Trim(URLPtrn.FindString(*url), "?")
+		*url = strings.Trim(pathPtrn.FindString(*url), "?")
 	}()
 
 	params := paramsPtrn.FindString(*url)

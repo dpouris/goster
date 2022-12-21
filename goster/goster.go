@@ -17,7 +17,7 @@ type Goster struct {
 type Route struct {
 	Type         string
 	Handler      RequestHandler
-	DynamicRoute DynamicRoute `json: omitempty`
+	DynamicRoute DynamicRoute
 }
 
 type RequestHandler func(ctx *Ctx) error

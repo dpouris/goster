@@ -7,7 +7,7 @@
 
 
 
-Goster is a siple HTTP library that can be used to serve static files and make simple API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
+Goster is a package that can be used to create servers and make API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
 -
 <br>
 
@@ -22,53 +22,59 @@ $ go get -u github.com/dpouris/goster
 ## **EXAMPLE**
 
 ```go
-package main
+g := Goster.NewServer()
 
-import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+g.AddGlobalMiddleware(func(ctx *Goster.Ctx) error {
+	fmt.Println("global middleware")
+	return nil
+})
 
-	Goster "github.com/dpouris/goster"
-)
+g.Get("/", func(ctx *Goster.Ctx) error {
+	index, err := ioutil.ReadFile("./hey.html")
 
-func main() {
-	g := Goster.Server()
+	if err != nil {
+		fmt.Println(err)
+	}
+	ctx.ResponseWriter.Write(index)
+	return nil
+})
 
-	g.Get("/hey", func(r Goster.Res, req *Goster.Req) error {
-        // Loads the HTML file
-		heyPage, err := ioutil.ReadFile("./examples/hey.html")
+g.Get("db/", func(ctx *Goster.Ctx) error {
+	// Query Param
+	name, _ := ctx.Meta.Get("yourName")
+	res := struct {
+		Greet string `json:"greet"`
+		Name string `json:"name"`
+	}{
+		Greet: "Hello",
+		Name: name,
+	}
 
-		if err != nil {
-            Goster.LogError(err.Error(), g.Logger)
-		}
+	ctx.ResponseWriter.NewHeaders(map[string]string{
+		"Content-Type": "application/json",
+	}, 200)
+	ctx.ResponseWriter.JSON(res)
 
-        // Write the HTML to the response body
-		r.Write(heyPage)
-		return nil
+	return nil
+})
+
+g.Get("fake_db/item/:id", func(ctx *Goster.Ctx) error {
+	itemID, exists := ctx.Meta.Get("id")
+
+	if !exists {
+		itemID = ""
+	}
+
+	ctx.ResponseWriter.JSON(struct{
+		itemID string `json:"itemID"`
+	}{
+		itemID
 	})
 
-	g.Post("/hey", func(r Goster.Res, req *Goster.Req) error {
-		// A map that is marshalled to JSON
-		log_map := map[string]string{
-			"hey": "you",
-			"hello": "world",
-		}
+	return nil
+})
 
-		// Write the JSON to the resonse body
-		err := r.JSON(log_map)
-
-		if err != nil {
-            Goster.LogError(err.Error(), g.Logger)
-		}
-
-		return nil
-	})
-
-    // Listen on port 8088
-	g.ListenAndServe(":8088")
-}
+g.ListenAndServe(":8088")
 
 ```
 <br>
@@ -77,19 +83,19 @@ func main() {
 
 ### **New Server**
 ```go
-g := Goster.Server()
+g := Goster.NewServer()
 ```
 
 ### **GET**
 ```go
-g.Get("/path", func(r Goster.Res, req *Goster.Req) error {
+g.Get("/path", func(ctx *Goster.Ctx) error {
 	// Handler logic
 })
 ```
 
-### **POST**
+### **POST (Dynamic path)**
 ```go
-g.Post("/path", func(r Goster.Res, req *Goster.Req) error {
+g.Post("/path/:id", func(ctx *Goster.Ctx) error {
 		// Handler logic
 	})
 ```
@@ -114,7 +120,7 @@ By default Goster handles all incoming requests and Logs the info on the Logs fi
 import Goster "github.com/dpouris/goster"
 
 func main() {
-	g := Goster.Server()
+	g := Goster.NewServer()
 
     // Logs to stdout
     Goster.LogInfo("This is an info message", g.Logger)
@@ -135,7 +141,7 @@ func main() {
 You can access all the logs on the `Goster.Logs` field.
 
 ```go
-g.Get("/logs", func(r Goster.Res, req *Goster.Req) error {
+g.Get("/logs", func(ctx *Goster.Ctx) error {
 		log_map := make(map[int]any, len(g.Logs))
 
 		for i, v := range g.Logs {
