@@ -1,4 +1,4 @@
-package gottp_client
+package goster
 
 import (
 	"errors"
