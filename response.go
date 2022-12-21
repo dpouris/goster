@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-type Res struct {
+type Response struct {
 	http.ResponseWriter
 }
 
 // Supply h with a map[string]string for the headers and s with an int representing the response status code or use the http.Status(...). They keys and values will be translated to the header of the response and the header will be locked afterwards not allowing changes to be made.
-func (g *Res) NewHeaders(h map[string]string, s int) {
+func (g *Response) NewHeaders(h map[string]string, s int) {
 	for k, v := range h {
 		g.Header().Set(k, v)
 	}
@@ -21,7 +21,7 @@ func (g *Res) NewHeaders(h map[string]string, s int) {
 }
 
 // Send back a JSON response. Supply j with a value that's valid marsallable(?) to JSON -> error
-func (r Res) JSON(j any) error {
+func (r Response) JSON(j any) error {
 	if v, ok := j.([]byte); ok {
 		cleanEmptyBytes(&v)
 		r.Header().Set("Content-Type", "application/json")
@@ -41,26 +41,26 @@ func (r Res) JSON(j any) error {
 	return err
 }
 
-func (r Res) Write(b []byte) (int, error) {
+func (r Response) Write(b []byte) (int, error) {
 	return r.ResponseWriter.Write(b)
 }
 
-func (r Res) WriteHeader(statusCode int) {
+func (r Response) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (r Res) Header() http.Header {
+func (r Response) Header() http.Header {
 	return r.ResponseWriter.Header()
 }
 
 func cleanEmptyBytes(b *[]byte) {
-	new_b := []byte{}
+	cleaned := []byte{}
 
 	for _, v := range *b {
 		if v == 0 {
 			break
 		}
-		new_b = append(new_b, v)
+		cleaned = append(cleaned, v)
 	}
-	*b = new_b
+	*b = cleaned
 }

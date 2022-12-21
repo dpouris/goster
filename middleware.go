@@ -5,29 +5,26 @@ import (
 	"net/http"
 )
 
-func HandleMethod(g *Gottp, req *http.Request) (status int, err error) {
-	u := req.URL.String()
-	m := req.Method
-
+func HandleMethod(g *Gottp, url, method string) (status int, err error) {
 	allowedMethods := make([]string, 0)
 
-	for name := range g.Routes[m] {
-		if u == name {
-			allowedMethods = append(allowedMethods, m)
+	for name := range g.Routes[method] {
+		if url == name {
+			allowedMethods = append(allowedMethods, method)
 		}
 	}
 
 	if len(allowedMethods) <= 0 {
-		return http.StatusNotFound, errors.New("404 NOT FOUND")
+		return http.StatusNotFound, errors.New("404 not found")
 	}
 
 	for _, v := range allowedMethods {
-		if v == m {
+		if v == method {
 			return http.StatusOK, nil
 		}
 	}
 
-	return http.StatusMethodNotAllowed, errors.New("405 METHOD NOT ALLOWED")
+	return http.StatusMethodNotAllowed, errors.New("405 method not allowed")
 }
 
 func HandleLog(route string, method string, err error, g *Gottp) {
