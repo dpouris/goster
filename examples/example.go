@@ -6,20 +6,20 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	Gottp "github.com/dpouris/goster"
+	Goster "github.com/dpouris/goster"
 )
 
 func main() {
-	g := Gottp.NewServer()
+	g := Goster.NewServer()
 
-	g.AddGlobalMiddleware(func(ctx *Gottp.Ctx) error {
+	g.AddGlobalMiddleware(func(ctx *Goster.Ctx) error {
 		fmt.Println("global middleware")
 		return nil
 	})
 
-	g.Get("/", func(ctx *Gottp.Ctx) error {
+	g.Get("/", func(ctx *Goster.Ctx) error {
 		q, exists := ctx.Get("q")
-		msg := "Hello and welcome to the test server of gottp :D"
+		msg := "Hello and welcome to the test server of Goster :D"
 		if exists {
 			if q == "69" {
 				msg = "AHA! You found the secret message with the code 69! Your treasure is this 8====D~ 8="
@@ -31,7 +31,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("db/", func(ctx *Gottp.Ctx) error {
+	g.Get("db/", func(ctx *Goster.Ctx) error {
 		name, _ := ctx.Meta.Get("yourName")
 		res := struct {
 			Hey string `json:"hey"`
@@ -49,7 +49,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("db/kati/:id", func(ctx *Gottp.Ctx) error {
+	g.Get("db/kati/:id", func(ctx *Goster.Ctx) error {
 		db, exists := ctx.Meta.Get("db")
 
 		if !exists {
@@ -60,7 +60,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("path/:name", func(ctx *Gottp.Ctx) error {
+	g.Get("path/:name", func(ctx *Goster.Ctx) error {
 		name, exists := ctx.Params.Get("name")
 
 		if !exists {
@@ -72,7 +72,7 @@ func main() {
 		return nil
 	})
 
-	g.Post("db/", func(ctx *Gottp.Ctx) error {
+	g.Post("db/", func(ctx *Goster.Ctx) error {
 		db := make([]byte, ctx.Request.ContentLength)
 		ctx.Request.Body.Read(db)
 		err := ioutil.WriteFile("./fake_db.txt", db, 0666)
@@ -97,7 +97,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("hey/", func(ctx *Gottp.Ctx) error {
+	g.Get("hey/", func(ctx *Goster.Ctx) error {
 		heyPage, err := ioutil.ReadFile("./hey.html")
 
 		if err != nil {
@@ -107,7 +107,7 @@ func main() {
 		return nil
 	})
 
-	g.Get("logs/", func(ctx *Gottp.Ctx) error {
+	g.Get("logs/", func(ctx *Goster.Ctx) error {
 		log_map := make(map[int]any, len(g.Logs))
 
 		for i, v := range g.Logs {
@@ -117,7 +117,7 @@ func main() {
 		err := ctx.ResponseWriter.JSON(log_map)
 
 		if err != nil {
-			Gottp.LogError(err.Error(), g.Logger)
+			Goster.LogError(err.Error(), g.Logger)
 		}
 		return nil
 	})

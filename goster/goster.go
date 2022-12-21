@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-type Gottp struct {
+type Goster struct {
 	Routes     map[string]map[string]Route
 	Middleware []RequestHandler
 	Logger     *log.Logger
@@ -50,8 +50,8 @@ func (p *Params) Get(id string) (i string, e bool) {
 	return id, exists
 }
 
-// New Gottp.NewServer instance -> *Gottp
-func NewServer() *Gottp {
+// New Goster.NewServer instance -> *Goster
+func NewServer() *Goster {
 	logger := log.New(os.Stdout, "[SERVER] - ", log.LstdFlags)
 	methods := make(map[string]map[string]Route)
 	methods["GET"] = make(map[string]Route)
@@ -59,21 +59,21 @@ func NewServer() *Gottp {
 	methods["PUT"] = make(map[string]Route)
 	methods["PATCH"] = make(map[string]Route)
 	methods["DELETE"] = make(map[string]Route)
-	return &Gottp{Routes: methods, Middleware: make([]RequestHandler, 0), Logger: logger}
+	return &Goster{Routes: methods, Middleware: make([]RequestHandler, 0), Logger: logger}
 }
 
 // Pass in a ReqHandler or ...ReqHandler type function(s) to handle incoming http requests on every single request
-func (g *Gottp) AddGlobalMiddleware(m ...RequestHandler) {
+func (g *Goster) AddGlobalMiddleware(m ...RequestHandler) {
 	g.Middleware = append(g.Middleware, m...)
 }
 
 // Start listening for incoming requests
-func (g *Gottp) ListenAndServe(p string) {
+func (g *Goster) ListenAndServe(p string) {
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
 	log.Fatal(http.ListenAndServe(p, g))
 }
 
-func (g *Gottp) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m := r.Method
 	u := r.URL.String()
 	res := Response{w}

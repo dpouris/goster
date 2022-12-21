@@ -1,4 +1,4 @@
-package gottp_client
+package goster
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Pass in a url and see if there're parameteres in it. If there are parseParams will return a Params struct and will remove them from the url that's passed in, if there aren't any, parseParams will return an error describing the error that occured and will still clean the url
+// Pass in a url and see if there're parameters in it. If there are parseParams will return a Params struct and will remove them from the url that's passed in, if there aren't any, parseParams will return an error describing the error that occurred and will still clean the url
 func parseParams(url *string) (Params, error) {
 	paramsPtrn := regexp.MustCompile(`\?.+(\/)?`)
 	URLPtrn := regexp.MustCompile(`^(\/\w+)+(\?)?`)

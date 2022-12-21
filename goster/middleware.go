@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func HandleMethod(g *Gottp, url, method string) (status int, err error) {
+func HandleMethod(g *Goster, url, method string) (status int, err error) {
 	allowedMethods := make([]string, 0)
 
 	for name := range g.Routes[method] {
@@ -27,7 +27,7 @@ func HandleMethod(g *Gottp, url, method string) (status int, err error) {
 	return http.StatusMethodNotAllowed, errors.New("405 method not allowed")
 }
 
-func HandleLog(route string, method string, err error, g *Gottp) {
+func HandleLog(route string, method string, err error, g *Goster) {
 	if err != nil {
 		l := err.Error()
 		g.Logs = append(g.Logs, l)
