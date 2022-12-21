@@ -1,15 +1,16 @@
 package goster
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 type Goster struct {
+	Context    *Ctx
 	Routes     map[string]map[string]Route
-	Middleware []RequestHandler
+	Middleware map[string][]RequestHandler
 	Logger     *log.Logger
 	Logs       []string
 }
@@ -30,8 +31,8 @@ type DynamicRoute struct {
 }
 
 type Ctx struct {
-	Request        *http.Request
-	ResponseWriter Response
+	Request  *http.Request
+	Response Response
 	Meta
 }
 
@@ -43,28 +44,31 @@ type Params struct {
 	values map[string]string
 }
 
-// Get tries to find if id is passed in to the url as a query param or as a dynamic route. If the specified id isn't found <e> will be false
-func (p *Params) Get(id string) (i string, e bool) {
-	id, exists := p.values[id]
+// --------------------------------------------------------------------------------------------- //
 
-	return id, exists
-}
+var e engine
 
 // New Goster.NewServer instance -> *Goster
 func NewServer() *Goster {
-	logger := log.New(os.Stdout, "[SERVER] - ", log.LstdFlags)
-	methods := make(map[string]map[string]Route)
-	methods["GET"] = make(map[string]Route)
-	methods["POST"] = make(map[string]Route)
-	methods["PUT"] = make(map[string]Route)
-	methods["PATCH"] = make(map[string]Route)
-	methods["DELETE"] = make(map[string]Route)
-	return &Goster{Routes: methods, Middleware: make([]RequestHandler, 0), Logger: logger}
+	g := e.Init()
+	return g
 }
 
 // Pass in a ReqHandler or ...ReqHandler type function(s) to handle incoming http requests on every single request
-func (g *Goster) AddGlobalMiddleware(m ...RequestHandler) {
-	g.Middleware = append(g.Middleware, m...)
+func (g *Goster) UseGlobal(m ...RequestHandler) {
+	g.Middleware["*"] = append(g.Middleware["*"], m...)
+}
+
+func (g *Goster) Use(path string, m ...RequestHandler) {
+	parsePath(&path)
+	g.Middleware[path] = m
+	// for method, routes := range g.Routes {
+	// 	if _, exists := g.Routes[method][path]; exists {
+	// 		route := routes[path]
+	// 		route.Middleware = append(route.Middleware, m...)
+	// 		routes[path] = route
+	// 	}
+	// }
 }
 
 // Start listening for incoming requests
@@ -73,10 +77,30 @@ func (g *Goster) ListenAndServe(p string) {
 	log.Fatal(http.ListenAndServe(p, g))
 }
 
+// In order to inherit the Handler interface, we must include a method called ServeHTTP. This is where the magic happens
 func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	m := r.Method
-	u := r.URL.String()
-	res := Response{w}
+	c := Ctx{
+		Request:  r,
+		Response: Response{w},
+	}
+
+	g.Context = &c
+
+	defer DefaultHeader(&c)
+
+	g.launchHandler()
+
+	for _, rh := range g.Middleware["*"] {
+		rh(&c)
+	}
+
+}
+
+// Launches the necessary handler for the incoming request
+func (g *Goster) launchHandler() {
+	c := g.Context
+	m := c.Request.Method
+	u := c.Request.URL.String()
 
 	// parses query params if there are any and removes them from url effectively transforming it from /path/path2?q=v -> /path/path2
 	params, err := parseParams(&u)
@@ -88,6 +112,11 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		meta.Params.values = map[string]string{}
 	}
 
+	// we need to pass the new stripped path in handleRoute as parseParams has cleaned it and will match the routes that are in g.Routes
+	err = g.handleRoute(c, u)
+
+	HandleLog(c, g, err)
+
 	route, routeExists := g.Routes[m][u]
 
 	if !routeExists {
@@ -98,7 +127,7 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			matchedRoute, err := matchDynamicRoute(u, name)
 			if err != nil {
-				fmt.Fprint(g.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
+				fmt.Fprintln(e.Goster.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
 				continue
 			}
 
@@ -107,36 +136,59 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Handler:      route.Handler,
 				DynamicRoute: matchedRoute,
 			}
-			g.Routes[m][matchedRoute.FullPath] = newRoute
-			meta.Params.values[g.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
+			e.Goster.Routes[m][matchedRoute.FullPath] = newRoute
 
-			defer route.Handler(&Ctx{ResponseWriter: res, Request: r, Meta: meta})
+			meta.Params.values[e.Goster.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
+			c.Meta = meta
+			defer route.Handler(c)
+
 			break
 		}
 	} else {
 		if len(route.DynamicRoute.Identifier) > 0 {
 			meta.Params.values[route.DynamicRoute.Identifier] = g.Routes[m][u].DynamicRoute.IdentifierValue
 		}
-		defer route.Handler(&Ctx{ResponseWriter: res, Request: r, Meta: meta})
+		c.Meta = meta
+		defer route.Handler(c)
 	}
 
-	// Middleware that handles validity of incoming request method
-	status, err := HandleMethod(g, u, m)
+	for _, rh := range g.Middleware[u] {
+		rh(c)
+	}
+}
 
-	// Logger middleware
-	HandleLog(u, m, err, g)
+func (g *Goster) handleRoute(c *Ctx, u string) (err error) {
+	m := c.Request.Method
+	methodAllowed := false
+	routeExists := false
 
-	if err != nil {
-		w.WriteHeader(status)
+	for method := range g.Routes {
+		if _, exists := g.Routes[method][u]; exists && method == m {
+			routeExists = true
+			methodAllowed = true
+			break
+		} else if exists && method != m {
+			routeExists = true
+		}
+	}
+
+	if !routeExists {
+		c.Response.WriteHeader(http.StatusNotFound)
+		err = errors.New("404 not found")
 		return
 	}
 
-	// Write successful header if all went ok
-	head := w.Header()
-	DefaultHeader(&head)
-
-	for _, m := range g.Middleware {
-		m(&Ctx{ResponseWriter: res, Request: r})
+	if !methodAllowed {
+		c.Response.WriteHeader(http.StatusMethodNotAllowed)
+		err = errors.New("405 method not allowed")
+		return
 	}
+	return
+}
 
+// Get tries to find if id is passed in to the url as a query param or as a dynamic route. If the specified id isn't found <e> will be false
+func (p *Params) Get(id string) (i string, e bool) {
+	id, exists := p.values[id]
+
+	return id, exists
 }

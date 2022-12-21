@@ -37,7 +37,7 @@ func parseParams(url *string) (Params, error) {
 	return Params{values: paramMap}, nil
 }
 
-func matchDynamicRoute(full string, dyn string) (DynamicRoute, error) {
+func matchDynamicRoute(full string, dyn string) (route DynamicRoute, err error) {
 	dynPattern := regexp.MustCompile(`\:\w+`)
 	fullPattern := regexp.MustCompile(`^\w+`)
 
@@ -45,11 +45,11 @@ func matchDynamicRoute(full string, dyn string) (DynamicRoute, error) {
 	identifier := strings.Trim(dynPattern.FindString(dyn), ":")
 
 	var identifierValue string
-	route := DynamicRoute{}
 	if len(full) >= identifierLoc[0] {
 		identifierValue = fullPattern.FindString(full[identifierLoc[0]:])
 	} else {
-		return route, errors.New("paths don't match")
+		err = errors.New("paths don't match")
+		return
 	}
 
 	replacedDyn := dynPattern.ReplaceAllString(dyn, identifierValue)
@@ -59,22 +59,32 @@ func matchDynamicRoute(full string, dyn string) (DynamicRoute, error) {
 		route.FullPath = full
 		route.Identifier = identifier
 		route.IdentifierValue = identifierValue
-		return route, nil
+		return
 	} else {
-		return route, errors.New("paths don't match")
+		err = errors.New("paths don't match")
+		return
 	}
 }
 
-// Deprecated
-func parsePath(url string) []string {
-	pathList := strings.Split(url, "/")
-	tempPathList := make([]string, 0)
+// Adds basic headers
+func DefaultHeader(c *Ctx) {
+	c.Response.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Response.Header().Set("Connection", "Keep-Alive")
+	c.Response.Header().Set("Keep-Alive", "timeout=5, max=997")
+}
 
-	for _, v := range pathList {
-		if len(v) != 0 {
-			tempPathList = append(tempPathList, v)
-		}
+func parsePath(path *string) {
+	if *path == "/" {
+		*path = ""
+		return
 	}
 
-	return tempPathList
+	if (*path)[0] != '/' {
+		*path = "/" + *path
+	}
+
+	if (*path)[len(*path)-1] == '/' {
+		*path = (*path)[:len((*path))-1]
+	}
+
 }
