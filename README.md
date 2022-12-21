@@ -24,7 +24,7 @@ $ go get -u github.com/dpouris/goster
 ```go
 g := Goster.NewServer()
 
-g.AddGlobalMiddleware(func(ctx *Goster.Ctx) error {
+g.UseGlobal(func(ctx *Goster.Ctx) error {
 	fmt.Println("global middleware")
 	return nil
 })
@@ -107,7 +107,15 @@ g.ListenAndServe(":8000") //Pass in whatever port is free
 
 ### **Global Middleware**
 ```go
-g.AddGlobalMiddleware(func(r http.ResponseWriter, req *http.Request) error {
+g.UseGlobal(func(ctx *Goster.Ctx) error {
+    // middleware logic
+	})
+```
+<br>
+
+### **Path specific Middleware**
+```go
+g.Use("/path", func(ctx *Goster.Ctx) error {
     // middleware logic
 	})
 ```
@@ -117,7 +125,7 @@ g.AddGlobalMiddleware(func(r http.ResponseWriter, req *http.Request) error {
 
 By default Goster handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Goster server and supply `Goster.Logger` to the Log functions.
 ```go
-import Goster "github.com/dpouris/goster"
+import Goster "github.com/dpouris/goster/goster"
 
 func main() {
 	g := Goster.NewServer()
