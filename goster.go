@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
 type Goster struct {
@@ -30,27 +31,11 @@ type DynamicRoute struct {
 	IdentifierValue string
 }
 
-type Ctx struct {
-	Request  *http.Request
-	Response Response
-	Meta
-}
-
-type Meta struct {
-	Params
-}
-
-type Params struct {
-	values map[string]string
-}
-
 // --------------------------------------------------------------------------------------------- //
-
-var e engine
 
 // New Goster.NewServer instance -> *Goster
 func NewServer() *Goster {
-	g := e.Init()
+	g := engine.init()
 	return g
 }
 
@@ -59,19 +44,13 @@ func (g *Goster) UseGlobal(m ...RequestHandler) {
 	g.Middleware["*"] = append(g.Middleware["*"], m...)
 }
 
+// Use is used to serve middleware for specific routes/paths
 func (g *Goster) Use(path string, m ...RequestHandler) {
 	parsePath(&path)
 	g.Middleware[path] = m
-	// for method, routes := range g.Routes {
-	// 	if _, exists := g.Routes[method][path]; exists {
-	// 		route := routes[path]
-	// 		route.Middleware = append(route.Middleware, m...)
-	// 		routes[path] = route
-	// 	}
-	// }
 }
 
-// Start listening for incoming requests
+// Start listening for incoming requests. Provide a port e.g :8080
 func (g *Goster) ListenAndServe(p string) {
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
 	log.Fatal(http.ListenAndServe(p, g))
@@ -127,7 +106,7 @@ func (g *Goster) launchHandler() {
 
 			matchedRoute, err := matchDynamicRoute(u, name)
 			if err != nil {
-				fmt.Fprintln(e.Goster.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
+				fmt.Fprintln(engine.Goster.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
 				continue
 			}
 
@@ -136,9 +115,9 @@ func (g *Goster) launchHandler() {
 				Handler:      route.Handler,
 				DynamicRoute: matchedRoute,
 			}
-			e.Goster.Routes[m][matchedRoute.FullPath] = newRoute
+			engine.Goster.Routes[m][matchedRoute.FullPath] = newRoute
 
-			meta.Params.values[e.Goster.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
+			meta.Params.values[engine.Goster.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
 			c.Meta = meta
 			defer route.Handler(c)
 
@@ -183,6 +162,17 @@ func (g *Goster) handleRoute(c *Ctx, u string) (err error) {
 		err = errors.New("405 method not allowed")
 		return
 	}
+	return
+}
+
+// Set base static file directory. If the directory doesn't exist it will return an error
+func (g *Goster) TemplateDir(d string) (err error) {
+	err = engine.SetTemplateDir(d)
+
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+
 	return
 }
 

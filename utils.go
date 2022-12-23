@@ -88,3 +88,15 @@ func parsePath(path *string) {
 	}
 
 }
+
+func cleanEmptyBytes(b *[]byte) {
+	cleaned := []byte{}
+
+	for _, v := range *b {
+		if v == 0 {
+			break
+		}
+		cleaned = append(cleaned, v)
+	}
+	*b = cleaned
+}
