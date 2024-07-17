@@ -5,23 +5,23 @@ import (
 )
 
 // Base request. Supply with method (GET, POST, PATCH, PUT, DELETE) to m, URL to u and a handler to h -> error
-func (g *Goster) New(m string, u string, h RequestHandler) (route Route) {
-	for name := range g.Routes[m] {
-		if name == u {
-			LogError(m+" route already exists", g.Logger)
+func (g *Goster) New(method string, url string, handler RequestHandler) (route Route) {
+	for name := range g.Routes[method] {
+		if name == url {
+			LogError(method+" route already exists", g.Logger)
 			return
 		}
 	}
 
 	routeType := "normal"
-	if strings.Contains(u, ":") {
+	if strings.Contains(url, ":") {
 		routeType = "dynamic"
 	}
 
-	parsePath(&u)
+	cleanPath(&url)
 
-	route = Route{Type: routeType, Handler: h}
-	g.Routes[m][u] = route
+	route = Route{Type: routeType, Handler: handler}
+	g.Routes[method][url] = route
 
 	return
 }
