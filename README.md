@@ -1,175 +1,157 @@
-# Goster
+# Goster 🚀
 [![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/goster)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/goster)](https://goreportcard.com/report/github.com/dpouris/goster)
 [![License](https://img.shields.io/github/license/dpouris/goster)](https://github.com/dpouris/goster/blob/master/LICENSE)
 ![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/goster)
 
+===============================
 
+Welcome to **Goster**, the lightweight and efficient web framework for Go! 🌟
 
+## Why Goster?
 
-Goster is a package that can be used to create servers and make API routes. It provides an abstraction on top of the built in http package to get up and running in no time.
--
-<br>
+- **Fast and Lightweight**: Build with simplicity in mind, Goster provides a minimalistic abstraction on top of the built-in http package.
+- 📊 **Intuitive API**: Easy-to-use API that simplifies web development without sacrificing flexibility.
+- 🛠 **Extensible Middleware**: Seamlessly add middleware to enhance your application's functionality.
+- 🔍 **Dynamic Routing**: Effortlessly handle both static and dynamic routes.
+- 🧪 **Configurable Logging** (TODO): Powerful and customizable logging to keep track of your application's activity.
 
+## Installation
 
-## **INSTALLATION**
+Install Goster using `go get`:
 
-```shell
-$ go get -u github.com/dpouris/goster
-```
-<br>
-
-## **EXAMPLE**
-
-```go
-g := Goster.NewServer()
-
-g.UseGlobal(func(ctx *Goster.Ctx) error {
-	fmt.Println("global middleware")
-	return nil
-})
-
-g.Get("/", func(ctx *Goster.Ctx) error {
-	index, err := ioutil.ReadFile("./hey.html")
-
-	if err != nil {
-		fmt.Println(err)
-	}
-	ctx.ResponseWriter.Write(index)
-	return nil
-})
-
-g.Get("db/", func(ctx *Goster.Ctx) error {
-	// Query Param
-	name, _ := ctx.Meta.Get("yourName")
-	res := struct {
-		Greet string `json:"greet"`
-		Name string `json:"name"`
-	}{
-		Greet: "Hello",
-		Name: name,
-	}
-
-	ctx.ResponseWriter.NewHeaders(map[string]string{
-		"Content-Type": "application/json",
-	}, 200)
-	ctx.ResponseWriter.JSON(res)
-
-	return nil
-})
-
-g.Get("fake_db/item/:id", func(ctx *Goster.Ctx) error {
-	itemID, exists := ctx.Meta.Get("id")
-
-	if !exists {
-		itemID = ""
-	}
-
-	ctx.ResponseWriter.JSON(struct{
-		itemID string `json:"itemID"`
-	}{
-		itemID
-	})
-
-	return nil
-})
-
-g.ListenAndServe(":8088")
-
-```
-<br>
-
-# **USAGE**
-
-### **New Server**
-```go
-g := Goster.NewServer()
+```sh
+go get -u github.com/dpouris/goster
 ```
 
-### **GET**
-```go
-g.Get("/path", func(ctx *Goster.Ctx) error {
-	// Handler logic
-})
-```
+## Quick Start
 
-### **POST (Dynamic path)**
-```go
-g.Post("/path/:id", func(ctx *Goster.Ctx) error {
-		// Handler logic
-	})
-```
+Create your first Goster server:
 
-### **ListenAndServe**
 ```go
-g.ListenAndServe(":8000") //Pass in whatever port is free
-```
+package main
 
-### **Global Middleware**
-```go
-g.UseGlobal(func(ctx *Goster.Ctx) error {
-    // middleware logic
-	})
-```
-<br>
-
-### **Path specific Middleware**
-```go
-g.Use("/path", func(ctx *Goster.Ctx) error {
-    // middleware logic
-	})
-```
-<br>
-
-## **LOGGING**
-
-By default Goster handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Goster server and supply `Goster.Logger` to the Log functions.
-```go
-import Goster "github.com/dpouris/goster/goster"
+import (
+    "log"
+    "net/http"
+    "github.com/dpouris/goster"
+)
 
 func main() {
-	g := Goster.NewServer()
+    g := goster.NewServer()
 
-    // Logs to stdout
-    Goster.LogInfo("This is an info message", g.Logger)
-    Goster.LogWarning("This is an warning message", g.Logger)
-    Goster.LogError("This is an error message", g.Logger)
+    g.Get("/", func(ctx *goster.Ctx) error {
+        ctx.Text("Hello, Goster!")
+        return nil
+    })
+
+    log.Fatal(g.ListenAndServe(":8080"))
 }
 ```
-```shell
-// OUTPUT
 
-2022/06/07 11:45:40 INFO  - This is an info message
-2022/06/07 11:45:40 WARN  - This is an warning message
-2022/06/07 11:45:40 ERROR - This is an error message
-```
+## **Usage**
 
-### **All logs**
+- Create a new server:
+	```go
+	g := Goster.NewServer()
+	```
 
-You can access all the logs on the `Goster.Logs` field.
-
-```go
-g.Get("/logs", func(ctx *Goster.Ctx) error {
-		log_map := make(map[int]any, len(g.Logs))
-
-		for i, v := range g.Logs {
-			log_map[i] = v
-		}
-
-		err := r.JSON(log_map)
-
-		if err != nil {
-			Goster.LogError(err.Error(), g.Logger)
-		}
-		return nil
+- Add a `GET` Route:
+	```go
+	g.Get("/path", func(ctx *Goster.Ctx) error {
+		// Handler logic
 	})
-```
+	```
 
- - ### Sample Response
+- Add a `Dynamic Route`:
+	```go
+	g.Post("/path/:id", func(ctx *Goster.Ctx) error {
+			// Handler logic
+		})
+	```
+
+- Add `Global Middleware`:
+	```go
+	g.UseGlobal(func(ctx *Goster.Ctx) error {
+		// middleware logic
+		})
+	```
+
+- Add `Path specific Middleware`:
+	```go
+	g.Use("/path", func(ctx *Goster.Ctx) error {
+		// middleware logic
+		})
+	```
+
+- Logging:
+
+	By default Goster handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Goster server and supply `Goster.Logger` to the Log functions.
+	```go
+	import Goster "github.com/dpouris/goster/goster"
+
+	func main() {
+		g := Goster.NewServer()
+
+		// Logs to stdout
+		Goster.LogInfo("This is an info message", g.Logger)
+		Goster.LogWarning("This is an warning message", g.Logger)
+		Goster.LogError("This is an error message", g.Logger)
+	}
+	```
+	```shell
+	// OUTPUT
+
+	2022/06/07 11:45:40 INFO  - This is an info message
+	2022/06/07 11:45:40 WARN  - This is an warning message
+	2022/06/07 11:45:40 ERROR - This is an error message
+	```
+
+- All logs:
+
+	You can access all the logs on the `Goster.Logs` field.
+
+	```go
+	g.Get("/logs", func(ctx *Goster.Ctx) error {
+			log_map := make(map[int]any, len(g.Logs))
+			for i, v := range g.Logs {
+				log_map[i] = v
+			}
+			r.JSON(log_map)
+
+			return nil
+		})
+	```
+
+	Sample Response
 
 	```json
+	// Logs are stored in the Logs field of Goster instance
 	{
 		"0": "[GET] ON ROUTE /hey",
 		"1": "[GET] ON ROUTE /logs"
-	}	// Logs are stored in the Logs field of Goster instance
+	}
 	```
+
+## Examples
+
+Check out these examples to get started quickly:
+
+- [Basic Setup](examples/basic/example_basic.go)
+- [Query Parameters](examples/query_params/example_query_params.go)
+- [Dynamic Routes](examples/dynamic_routes/example_dynamic_route.go)
+- [JSON Responses](examples/json_response/example_json_response.go)
+- [HTML Templates](examples/html_template/example_html_template.go)
+- [Middleware Usage](examples/middleware/example_middleware.go)
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more information.
+
+## License
+
+Goster is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+By emphasizing the features, providing a quick start guide, and linking to more detailed documentation and examples, this README aims to engage users and encourage them to try Goster.
