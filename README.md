@@ -4,8 +4,6 @@
 [![License](https://img.shields.io/github/license/dpouris/goster)](https://github.com/dpouris/goster/blob/master/LICENSE)
 ![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/goster)
 
-===============================
-
 Welcome to **Goster**, the lightweight and efficient web framework for Go! 🌟
 
 ## Why Goster?
