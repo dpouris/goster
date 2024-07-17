@@ -23,7 +23,7 @@ func main() {
 	})
 
 	g.Get("/", func(ctx *Goster.Ctx) error {
-		q, exists := ctx.Get("q")
+		q, exists := ctx.Query.Get("q")
 		msg := "Hello and welcome to the test server of Goster :D"
 		if exists {
 			if q == "69" {
@@ -37,7 +37,7 @@ func main() {
 	})
 
 	g.Get("db/", func(ctx *Goster.Ctx) error {
-		name, _ := ctx.Meta.Get("yourName")
+		name, _ := ctx.Query.Get("yourName")
 		res := struct {
 			Hey string `json:"hey"`
 			You string `json:"you"`
@@ -55,9 +55,37 @@ func main() {
 	})
 
 	g.Get("greet/:name", func(ctx *Goster.Ctx) (err error) {
-		name, exists := ctx.Get("name")
+		name, exists := ctx.Path.Get("name")
+
 		if !exists {
 			ctx.Text("Please navigate to /greet/<yourName>")
+			return
+		}
+		secret, exists := ctx.Query.Get("name")
+		if exists {
+			name += secret
+		}
+
+		err = g.TemplateDir("templates")
+
+		if err != nil {
+			ctx.Text(err.Error())
+			return nil
+		}
+
+		err = ctx.Template("index.gohtml", name)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		return nil
+	})
+
+	g.Get("poop/:gate/:for", func(ctx *Goster.Ctx) (err error) {
+		name, exists := ctx.Path.Get("gate")
+		if !exists {
+			ctx.Text("Please navigate to /poop/<yourGate>")
 			return
 		}
 
@@ -78,7 +106,7 @@ func main() {
 	})
 
 	g.Get("age/", func(ctx *Goster.Ctx) (err error) {
-		age, exists := ctx.Get("age")
+		age, exists := ctx.Query.Get("age")
 
 		if !exists {
 			msg := "please specify an ?age param in the url"

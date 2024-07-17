@@ -1,143 +1,162 @@
 package goster
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strings"
 )
 
+// Goster is the main structure of the package. It handles the addition of new routes and middleware, and manages logging.
 type Goster struct {
-	Context    *Ctx
-	Routes     map[string]map[string]Route
-	Middleware map[string][]RequestHandler
-	Logger     *log.Logger
-	Logs       []string
+	Routes     map[string]map[string]Route // Routes is a map of HTTP methods to their respective route handlers.
+	Middleware map[string][]RequestHandler // Middleware is a map of routes to their respective middleware handlers.
+	Logger     *log.Logger                 // Logger is used for logging information and errors.
+	Logs       []string                    // Logs stores logs for future reference.
 }
 
+// Route represents an HTTP route with a type and a handler function.
 type Route struct {
-	Type         string
-	Handler      RequestHandler
-	DynamicRoute DynamicRoute
+	Type    string         // Type specifies the type of the route (e.g., "static", "dynamic").
+	Handler RequestHandler // Handler is the function that handles the route.
 }
 
+// RequestHandler is a type for functions that handle HTTP requests within a given context.
 type RequestHandler func(ctx *Ctx) error
 
-type DynamicRoute struct {
-	FullPath        string
-	DynPath         string
-	Identifier      string
-	IdentifierValue string
-}
+// ------------------------------------------Public Methods--------------------------------------------------- //
 
-// --------------------------------------------------------------------------------------------- //
-
-// New Goster.NewServer instance -> *Goster
+// NewServer creates a new Goster instance.
 func NewServer() *Goster {
 	g := engine.init()
 	return g
 }
 
-// Pass in a ReqHandler or ...ReqHandler type function(s) to handle incoming http requests on every single request
+// UseGlobal adds middleware handlers that will be applied to every single request.
 func (g *Goster) UseGlobal(m ...RequestHandler) {
 	g.Middleware["*"] = append(g.Middleware["*"], m...)
 }
 
-// Use is used to serve middleware for specific routes/paths
+// Use adds middleware handlers that will be applied to specific routes/paths.
 func (g *Goster) Use(path string, m ...RequestHandler) {
-	parsePath(&path)
+	cleanPath(&path)
 	g.Middleware[path] = m
 }
 
-// Start listening for incoming requests. Provide a port e.g :8080
+// TemplateDir extends the engine's file paths with the specified directory `d`,
+// which is joined to Engine.Config.BaseStaticDir (default is the current working directory).
+//
+// This instructs the engine where to look for static files like .html, .gohtml, .css, .js, etc.
+// If the directory doesn't exist, it will return an appropriate error.
+//
+// TODO: Should revise this function
+func (g *Goster) TemplateDir(d string) (err error) {
+	err = engine.SetTemplateDir(d)
+
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+
+	return
+}
+
+// ListenAndServe starts listening for incoming requests on the specified port (e.g., ":8080").
 func (g *Goster) ListenAndServe(p string) {
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
 	log.Fatal(http.ListenAndServe(p, g))
 }
 
-// In order to inherit the Handler interface, we must include a method called ServeHTTP. This is where the magic happens
+// ServeHTTP is the handler for incoming HTTP requests to the server.
+// It parses the request, manages routing, and is required to implement the http.Handler interface.
 func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c := Ctx{
+	ctx := Ctx{
 		Request:  r,
 		Response: Response{w},
+		Meta: Meta{
+			Query: Params{
+				values: make(map[string]string),
+			},
+			Path: Path{
+				values: make(map[string]string),
+			},
+		},
 	}
+	// Parse the URL and extract query parameters into the Meta struct
+	url := ctx.Request.URL.String()
+	ctx.Meta.ParseUrl(&url) // TODO: handle this error
 
-	g.Context = &c
+	DefaultHeader(&ctx)
 
-	defer DefaultHeader(&c)
+	// Construct normal routes from URL path if they match a specific dynamic route
+	g.constructPathRoutes(&ctx, url)
 
-	g.launchHandler()
+	// Validate the route based on the HTTP method and URL path
+	status := g.validateRoute(ctx.Request.Method, url)
 
+	if status != http.StatusOK {
+		ctx.Response.WriteHeader(status)
+		return
+	}
+	g.launchHandler(&ctx, url)
+
+	// Execute global middleware handlers
 	for _, rh := range g.Middleware["*"] {
-		rh(&c)
+		rh(&ctx)
 	}
-
 }
 
-// Launches the necessary handler for the incoming request
-func (g *Goster) launchHandler() {
-	c := g.Context
-	m := c.Request.Method
-	u := c.Request.URL.String()
+// ------------------------------------------Private Methods--------------------------------------------------- //
 
-	// parses query params if there are any and removes them from url effectively transforming it from /path/path2?q=v -> /path/path2
-	params, err := parseParams(&u)
-	meta := Meta{}
+// launchHandler launches the necessary handler for the incoming request based on the route.
+func (g *Goster) launchHandler(ctx *Ctx, url string) {
+	method := ctx.Request.Method
 
-	if err == nil {
-		meta.Params = params
-	} else {
-		meta.Params.values = map[string]string{}
+	HandleLog(ctx, g, nil)
+
+	route := g.Routes[method][url]
+
+	defer route.Handler(ctx)
+
+	// Run all route-specific middleware defined by the user
+	for _, rh := range g.Middleware[url] {
+		rh(ctx)
 	}
+}
 
-	// we need to pass the new stripped path in handleRoute as parseParams has cleaned it and will match the routes that are in g.Routes
-	err = g.handleRoute(c, u)
+// constructPathRoutes constructs normal routes from URL path if they match a specific dynamic route.
+func (g *Goster) constructPathRoutes(ctx *Ctx, url string) {
+	method := ctx.Request.Method
 
-	HandleLog(c, g, err)
+	for path, route := range g.Routes[method] {
+		if route.Type != "dynamic" {
+			continue
+		}
 
-	route, routeExists := g.Routes[m][u]
-
-	if !routeExists {
-		for name, route := range g.Routes[m] {
-			if route.Type != "dynamic" {
-				continue
-			}
-
-			matchedRoute, err := matchDynamicRoute(u, name)
-			if err != nil {
-				fmt.Fprintln(engine.Goster.Logger.Writer(), fmt.Errorf("error: %s", err.Error()))
-				continue
-			}
-
+		if isDynamicRouteMatch(ctx, url, path) {
 			newRoute := Route{
-				Type:         "normal",
-				Handler:      route.Handler,
-				DynamicRoute: matchedRoute,
+				Type:    "normal",
+				Handler: route.Handler,
 			}
-			engine.Goster.Routes[m][matchedRoute.FullPath] = newRoute
-
-			meta.Params.values[engine.Goster.Routes[m][u].DynamicRoute.Identifier] = matchedRoute.IdentifierValue
-			c.Meta = meta
-			defer route.Handler(c)
+			engine.Goster.Routes[method][url] = newRoute
 
 			break
 		}
-	} else {
-		if len(route.DynamicRoute.Identifier) > 0 {
-			meta.Params.values[route.DynamicRoute.Identifier] = g.Routes[m][u].DynamicRoute.IdentifierValue
-		}
-		c.Meta = meta
-		defer route.Handler(c)
-	}
-
-	for _, rh := range g.Middleware[u] {
-		rh(c)
 	}
 }
 
-func (g *Goster) handleRoute(c *Ctx, u string) (err error) {
-	m := c.Request.Method
+// validateRoute checks if the route "u" exists inside the `map[string]map[string]Route` collection
+// and under the method "m" so that the following expression evaluates to true:
+//
+//	if _, exists := g.Routes[m][u]; exists {
+//		// some code
+//	}
+//
+// If "u" exists but not under the method "m", then the status `http.StatusMethodNotAllowed` is returned
+//
+// If "u" doesn't exist then the status `http.StatusNotFound` is returned
+func (g *Goster) validateRoute(m, u string) int {
 	methodAllowed := false
 	routeExists := false
 
@@ -152,33 +171,55 @@ func (g *Goster) handleRoute(c *Ctx, u string) (err error) {
 	}
 
 	if !routeExists {
-		c.Response.WriteHeader(http.StatusNotFound)
-		err = errors.New("404 not found")
-		return
+		return http.StatusNotFound
 	}
 
 	if !methodAllowed {
-		c.Response.WriteHeader(http.StatusMethodNotAllowed)
-		err = errors.New("405 method not allowed")
+		return http.StatusMethodNotAllowed
+	}
+	return http.StatusOK
+}
+
+// isDynamicRouteMatch checks if the raw (stripped from Query Parameters) URL path `url` matches a Dynamic Route path
+// `dynPath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
+// is a catch-all identifier that matches any route with the same structure up to that point.
+//
+// Ex:
+//
+//	var ctx = ...
+//	var url = "path/anotherPath/andYetAnotherPath"
+//	var dynPath = "path/anotherPath/:identifier"
+//	if !isDynamicRouteMatch(&ctx, url, dynPath) {
+//			panic(...)
+//	}
+//
+// The above code will not panic as the isDynamicRouteMatch will evaluate to `true`
+func isDynamicRouteMatch(ctx *Ctx, url string, dynPath string) (match bool) {
+	match = false
+	dynPathPattern := regexp.MustCompile(`\:\w+`)
+	// For example in the dynamic url path "greet/:name":
+	// 	- variablePathStart would be 6 (the index of the char ':')
+	// 	- variablePath would be "name"
+	variablePathStart := dynPathPattern.FindStringIndex(dynPath)[0]
+	variablePath := strings.Trim(dynPathPattern.FindString(dynPath), ":")
+
+	if len(url) < variablePathStart {
 		return
 	}
-	return
-}
 
-// Set base static file directory. If the directory doesn't exist it will return an error
-func (g *Goster) TemplateDir(d string) (err error) {
-	err = engine.SetTemplateDir(d)
+	variablePathValue := url[variablePathStart:]
+	stopIdx := strings.IndexFunc(variablePathValue, func(r rune) bool { return r == '/' })
+	if stopIdx > 0 {
+		variablePathValue = variablePathValue[:stopIdx]
+	}
 
-	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+	constructedPath := dynPathPattern.ReplaceAllString(dynPath, variablePathValue)
+
+	if constructedPath == url {
+		match = true
+		ctx.Meta.Path.values[variablePath] = variablePathValue
+		return
 	}
 
 	return
-}
-
-// Get tries to find if id is passed in to the url as a query param or as a dynamic route. If the specified id isn't found <e> will be false
-func (p *Params) Get(id string) (i string, e bool) {
-	id, exists := p.values[id]
-
-	return id, exists
 }

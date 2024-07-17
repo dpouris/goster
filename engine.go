@@ -16,7 +16,7 @@ type Engine struct {
 
 type Config struct {
 	BaseStaticDir string
-	FilePaths     []string
+	FilePaths     map[string]bool
 }
 
 var engine = Engine{}
@@ -44,7 +44,10 @@ func (e *Engine) init() *Goster {
 
 // Set the default config settings for the engine
 func (e *Engine) DefaultConfig() {
-	e.Config = &Config{}
+	e.Config = &Config{
+		FilePaths:     make(map[string]bool, 0),
+		BaseStaticDir: "",
+	}
 
 	err := e.SetTemplateDir("templates")
 
@@ -77,8 +80,24 @@ func (e *Engine) SetTemplateDir(d string) (err error) {
 	}
 
 	for _, de := range files {
-		e.Config.FilePaths = append(e.Config.FilePaths, path.Join(e.Config.BaseStaticDir, de.Name()))
+		// PROBLEM dedup
+		e.Config.AddFilePath(path.Join(e.Config.BaseStaticDir, de.Name()))
 	}
 
+	return
+}
+
+func (c *Config) AddFilePath(path string) (added bool) {
+	// check if path exists
+	_, exists := c.FilePaths[path]
+
+	if !exists {
+		// add if it doesn't
+		c.FilePaths[path] = true
+		added = true
+		return
+	}
+
+	added = false
 	return
 }

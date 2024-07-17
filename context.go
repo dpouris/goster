@@ -16,22 +16,14 @@ type Ctx struct {
 	Meta
 }
 
-type Meta struct {
-	Params
-}
-
-type Params struct {
-	values map[string]string
-}
-
 // Send an HTML template t file to the client. If template not in template dir then will return error.
 func (c *Ctx) Template(t string, data any) (err error) {
 	files := engine.Config.FilePaths
 
-	for _, tmpl := range files {
+	for tmpl := range files {
 		if tmpl == path.Join(engine.Config.BaseStaticDir, t) {
 			tm := template.Must(template.ParseFiles(tmpl))
-			tm.Execute(c.Response, data)
+			err = tm.Execute(c.Response, data)
 
 			if err != nil {
 				return err
@@ -47,7 +39,7 @@ func (c *Ctx) Template(t string, data any) (err error) {
 func (c *Ctx) HTML(f string) (err error) {
 	files := engine.Config.FilePaths
 
-	for _, fp := range files {
+	for fp := range files {
 		if path.Join(engine.Config.BaseStaticDir, f) == fp {
 			file, err := os.Open(fp)
 
