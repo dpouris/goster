@@ -82,7 +82,7 @@ func main() {
 
 - Logging:
 
-	By default Goster handles all incoming requests and Logs the info on the Logs field. On the example bellow I create a new instance of Goster server and supply `Goster.Logger` to the Log functions.
+	By default Goster handles all incoming requests and Logs the info on the Logs field. On the example below, we craete a new instance of Goster server and supply `Goster.Logger` to the Log functions.
 	```go
 	import Goster "github.com/dpouris/goster/goster"
 
@@ -142,12 +142,8 @@ Check out these examples to get started quickly:
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more information.
+I welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for more information.
 
 ## License
 
 Goster is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-By emphasizing the features, providing a quick start guide, and linking to more detailed documentation and examples, this README aims to engage users and encourage them to try Goster.
