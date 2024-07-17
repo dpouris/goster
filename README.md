@@ -8,7 +8,7 @@ Welcome to **Goster**, the lightweight and efficient web framework for Go! 🌟
 
 ## Why Goster?
 
-- **Fast and Lightweight**: Build with simplicity in mind, Goster provides a minimalistic abstraction on top of the built-in http package.
+- 🚀 **Fast and Lightweight**: Build with simplicity in mind, Goster provides a minimalistic abstraction on top of the built-in http package.
 - 📊 **Intuitive API**: Easy-to-use API that simplifies web development without sacrificing flexibility.
 - 🛠 **Extensible Middleware**: Seamlessly add middleware to enhance your application's functionality.
 - 🔍 **Dynamic Routing**: Effortlessly handle both static and dynamic routes.
@@ -30,8 +30,6 @@ Create your first Goster server:
 package main
 
 import (
-    "log"
-    "net/http"
     "github.com/dpouris/goster"
 )
 
@@ -43,7 +41,7 @@ func main() {
         return nil
     })
 
-    log.Fatal(g.ListenAndServe(":8080"))
+    g.ListenAndServe(":8080")
 }
 ```
 
