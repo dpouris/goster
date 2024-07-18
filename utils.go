@@ -12,8 +12,7 @@ func DefaultHeader(c *Ctx) {
 }
 
 func cleanPath(path *string) {
-	if *path == "/" {
-		*path = ""
+	if len(*path) == 0 {
 		return
 	}
 
@@ -21,9 +20,7 @@ func cleanPath(path *string) {
 		*path = "/" + *path
 	}
 
-	*path = strings.TrimRightFunc(*path, func(r rune) bool {
-		return r == '/'
-	})
+	*path = strings.TrimSuffix(*path, "/")
 }
 
 func cleanEmptyBytes(b *[]byte) {

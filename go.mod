@@ -1,3 +1,3 @@
 module github.com/dpouris/goster
 
-go 1.18
+go 1.21

@@ -36,24 +36,26 @@ func (p *Path) Get(id string) (value string, exists bool) {
 }
 
 // Pass in a `url` and see if there're parameters in it
-// 
+//
 // If there're, ParseUrl will construct a Params struct and populate Meta.Query.Params
-// 
+//
 // If there aren't any, ParseUrl will return the error that occurred
-// 
+//
 // The `url` string reference that is passed in will have the parameters stripped in either case
 func (m *Meta) ParseUrl(url *string) (err error) {
 	paramValues := make(map[string]string, 0)
 	paramPattern := regexp.MustCompile(`\?.+(\/)?`)
-	pathPattern := regexp.MustCompile(`^(\/\w+)+(\?)?`)
+	pathPattern := regexp.MustCompile(`^(\/\w+)+(\/)*(\?)?`)
 	defer func() {
 		m.Query = Params{
 			values: paramValues,
 		}
-	}()
-
-	defer func() {
-		*url = strings.Trim(pathPattern.FindString(*url), "?")
+		matchedStr := pathPattern.FindString(*url)
+		if len(matchedStr) != 0 {
+			*url = matchedStr
+		}
+		*url = strings.Trim(*url, "?")
+		cleanPath(url)
 	}()
 
 	params := paramPattern.FindString(*url)
