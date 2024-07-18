@@ -90,3 +90,13 @@ func (c *Ctx) JSON(j any) error {
 
 	return err
 }
+
+func (c *Ctx) prepare(reqURL string, dynPathURL ...string) (err error) {
+	err = c.Meta.ParseUrl(reqURL)
+
+	if len(dynPathURL) > 0 {
+		err = c.Meta.ParseDynPath(reqURL, dynPathURL[0])
+	}
+
+	return
+}
