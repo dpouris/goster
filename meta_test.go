@@ -1,60 +1,62 @@
 package goster
 
 import (
+	"maps"
 	"testing"
 )
 
 type ParseUrlCase struct {
-	name        string
-	url         string
-	expectedUrl string
-	shouldFail  bool
+	name                string
+	url                 string
+	expectedQueryParams map[string]string
+	shouldFail          bool
 }
 
 func TestParseUrl(t *testing.T) {
-	meta := Meta{
-		Query: Params{
-			values: make(map[string]string),
-		},
-	}
 	testCases := []ParseUrlCase{
 		{
-			name:        "1",
-			url:         "/home/var/",
-			expectedUrl: "/home/var",
-			shouldFail:  false,
+			name: "1",
+			url:  "/var/home?name=dimitris&age=24",
+			expectedQueryParams: map[string]string{
+				"name": "dimitris",
+				"age":  "24",
+			},
+			shouldFail: false,
 		},
 		{
-			name:        "2",
-			url:         "/home/var/",
-			expectedUrl: "/home/var/",
-			shouldFail:  true,
+			name: "2",
+			url:  "/var/home?name=dimitris&age=23",
+			expectedQueryParams: map[string]string{
+				"name": "dimitris",
+				"age":  "24",
+			},
+			shouldFail: true,
 		},
 		{
-			name:        "3",
-			url:         "/home/var///",
-			expectedUrl: "/home/var///",
-			shouldFail:  true,
-		},
-		{
-			name:        "4",
-			url:         "/home/var///",
-			expectedUrl: "/home/var//",
-			shouldFail:  false,
-		},
-		{
-			name:        "5",
-			url:         "////",
-			expectedUrl: "///",
-			shouldFail:  false,
+			name: "3",
+			url:  "/var/home?name=dimitris&name=gearge&age=24",
+			expectedQueryParams: map[string]string{
+				"name": "dimitris",
+				"age":  "24",
+			},
+			shouldFail: true,
 		},
 	}
 
-	failedCases := make(map[int]ParseUrlCase, 0)
+	failedCases := make(map[int]struct {
+		Meta
+		ParseUrlCase
+	}, 0)
 	for i, c := range testCases {
-		meta.ParseUrl(&c.url)
-		if (c.url != c.expectedUrl) == !c.shouldFail {
-			failedCases[i] = c
+		meta := Meta{
+			Query: make(map[string]string),
+		}
+		meta.ParseUrl(c.url)
+		if (!maps.Equal(meta.Query, c.expectedQueryParams)) == !c.shouldFail {
+			failedCases[i] = struct {
+				Meta
+				ParseUrlCase
+			}{meta, c}
 		} else {
 			t.Logf("PASSED [%d] - %s\n", i, c.name)
 		}
@@ -64,8 +66,8 @@ func TestParseUrl(t *testing.T) {
 	t.Log("")
 
 	for i, c := range failedCases {
-		t.Errorf("FAILED [%d] - %s\n", i, c.name)
-		t.Errorf("Expected '%s' path, but got '%s'", c.expectedUrl, c.url)
+		t.Errorf("FAILED [%d] - %s\n", i, c.ParseUrlCase.name)
+		t.Errorf("Expected '%v' path, but got '%v'", c.expectedQueryParams, c.Query)
 	}
 
 	t.Logf("TOTAL CASES: %d\n", len(testCases))

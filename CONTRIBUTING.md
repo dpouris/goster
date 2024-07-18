@@ -47,7 +47,3 @@ Currently, there's no documentation as there's not a need for it. Goster is stil
 For any questions or discussions, you can send me an email at [jimpouris0\@gmail.com](mailto:jimpouris0@gmail.com?subject=Goster)
 
 I look forward to your contributions!
-
----
-
-This `CONTRIBUTING.md` file provides clear guidelines for contributing to the Goster project, ensuring contributors have the information they need to make valuable contributions.

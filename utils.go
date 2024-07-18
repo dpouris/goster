@@ -1,6 +1,7 @@
 package goster
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -11,9 +12,10 @@ func DefaultHeader(c *Ctx) {
 	c.Response.Header().Set("Keep-Alive", "timeout=5, max=997")
 }
 
+// cleanPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
+// they will be removed as well.
 func cleanPath(path *string) {
-	if *path == "/" {
-		*path = ""
+	if len(*path) == 0 {
 		return
 	}
 
@@ -21,9 +23,7 @@ func cleanPath(path *string) {
 		*path = "/" + *path
 	}
 
-	*path = strings.TrimRightFunc(*path, func(r rune) bool {
-		return r == '/'
-	})
+	*path = strings.TrimSuffix(*path, "/")
 }
 
 func cleanEmptyBytes(b *[]byte) {
@@ -36,4 +36,26 @@ func cleanEmptyBytes(b *[]byte) {
 		cleaned = append(cleaned, v)
 	}
 	*b = cleaned
+}
+
+func matchDynPathValue(dynPath, url string) (dp []DynamicPath, err error) {
+	dynPathSlice := strings.Split(dynPath, "/")
+	urlSice := strings.Split(url, "/")
+
+	if len(dynPathSlice) != len(urlSice) {
+		err = fmt.Errorf("request URL path `%s` does not match with dynamic Route path `%s`", url, dynPath)
+		return
+	}
+
+	dp = make([]DynamicPath, len(dynPathSlice))
+	for i, path := range dynPathSlice {
+		if strings.ContainsRune(path, ':') {
+			dp = append(dp, DynamicPath{
+				path:  strings.TrimPrefix(path, ":"),
+				value: urlSice[i],
+			})
+		}
+	}
+
+	return
 }

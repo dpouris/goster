@@ -11,17 +11,8 @@ type IsDynamicMatchCase struct {
 	expectedResult bool
 }
 
-func TestIsDynamicRouteMatch(t *testing.T) {
-	ctx := Ctx{
-		Meta: Meta{
-			Query: Params{
-				values: make(map[string]string),
-			},
-			Path: Path{
-				values: make(map[string]string),
-			},
-		},
-	}
+func TestIsDynRouteMatch(t *testing.T) {
+	g := NewServer()
 
 	testCases := []IsDynamicMatchCase{
 		{
@@ -76,7 +67,7 @@ func TestIsDynamicRouteMatch(t *testing.T) {
 
 	failedCases := make(map[int]IsDynamicMatchCase, 0)
 	for i, c := range testCases {
-		if isDynamicRouteMatch(&ctx, c.url, c.dynPath) != c.expectedResult {
+		if g.isDynRouteMatch(c.url, c.dynPath) != c.expectedResult {
 			failedCases[i] = c
 		} else {
 			t.Logf("PASSED [%d] - %s\n", i, c.name)
@@ -88,6 +79,7 @@ func TestIsDynamicRouteMatch(t *testing.T) {
 
 	for i, c := range failedCases {
 		t.Errorf("FAILED [%d] - %s\n", i, c.name)
+		t.Errorf("Expected %t for '%s' and '%s'", c.expectedResult, c.url, c.dynPath)
 	}
 
 	t.Logf("TOTAL CASES: %d\n", len(testCases))
