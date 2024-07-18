@@ -34,7 +34,7 @@ func TestMethodNew(t *testing.T) {
 
 	failedCases := make(map[int]MethodNewCase, 0)
 	for i, c := range testCases {
-		g.New(c.method, c.url, c.handler)
+		g.Routes.New(c.method, c.url, c.handler)
 		if _, exists := g.Routes[c.method][c.expectedPath]; exists {
 			t.Logf("PASSED [%d] - %s\n", i, c.name)
 		} else {
