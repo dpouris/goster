@@ -2,6 +2,8 @@ package goster
 
 import (
 	"fmt"
+	"mime"
+	"path/filepath"
 	"strings"
 )
 
@@ -58,4 +60,13 @@ func matchDynPathValue(dynPath, url string) (dp []DynamicPath, err error) {
 	}
 
 	return
+}
+
+func getContentType(filename string) string {
+	ext := filepath.Ext(filename)
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	return contentType
 }
