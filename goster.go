@@ -60,6 +60,21 @@ func (g *Goster) TemplateDir(d string) (err error) {
 	return
 }
 
+// StaticDir sets the directory from which static files are served.
+// It integrates the specified directory into the server's static file handling
+// by invoking AddStaticDir on the Routes collection.
+// If an error occurs during this process, the error is printed to the standard error output.
+// The function returns the error encountered, if any.
+func (g *Goster) StaticDir(dir string) (err error) {
+	err = g.Routes.AddStaticDir(dir)
+
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+
+	return
+}
+
 // ListenAndServe starts listening for incoming requests on the specified port (e.g., ":8080").
 func (g *Goster) ListenAndServe(p string) {
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
