@@ -64,7 +64,6 @@ func (c *Ctx) HTML(f string) (err error) {
 
 // Send plain text to the client
 func (c *Ctx) Text(s string) {
-	c.Response.Header().Set("Content-Type", "text/plain")
 	c.Response.Header().Set("Content-Length", fmt.Sprint(len(s)))
 	fmt.Fprint(c.Response.ResponseWriter, s)
 }
