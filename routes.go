@@ -17,11 +17,12 @@ type Routes map[string]map[string]Route
 // serving its content along with the appropriate Content-Type header.
 // The `dir` parameter should be a relative path from the working directory (the directory you'll execute the program).
 func (rs *Routes) AddStaticDir(dir string) error {
-	exPath, err := os.Getwd()
+	ex, err := os.Executable()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "cannot determine working directory for static dir %s\n", dir)
 		return err
 	}
+	exPath := filepath.Dir(ex)
 
 	// construct the full path to the static directory
 	staticPath := path.Join(exPath, dir)
