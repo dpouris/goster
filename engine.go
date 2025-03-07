@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 )
 
@@ -85,7 +86,11 @@ func (e *Engine) SetTemplateDir(path string) (err error) {
 			if err != nil {
 				return err
 			}
-			templatesMap[relativePath] = path
+			templateExts := []string{".html", ".gohtml"}
+			fileExt := filepath.Ext(d.Name())
+			if slices.Contains(templateExts, fileExt) {
+				templatesMap[relativePath] = path
+			}
 		}
 		return nil
 	})
