@@ -57,10 +57,12 @@ jobs:
     
       - name: Lint code
         id: lint-code
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          problem-matchers: true
 
+        #   TODO: fix this, outputs.lint-out is empty
       - name: Save lint output
         if: failure()
         run: echo "${{steps.lint-code.outputs.lint-out}}" > lint.out

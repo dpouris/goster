@@ -6,7 +6,10 @@ import (
 
 func main() {
 	g := Goster.NewServer()
-	g.TemplateDir("templates")
+	err := g.TemplateDir("/templates")
+	if err != nil {
+		Goster.LogError("could not set templates dir", g.Logger)
+	}
 
 	g.Get("/greet/:name", func(ctx *Goster.Ctx) error {
 		name, exists := ctx.Path.Get("name")

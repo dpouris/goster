@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 // Goster is the main structure of the package. It handles the addition of new routes and middleware, and manages logging.
@@ -52,7 +51,7 @@ func (g *Goster) TemplateDir(d string) (err error) {
 	err = engine.SetTemplateDir(d)
 
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+		LogError(err.Error(), g.Logger)
 	}
 
 	return
@@ -68,7 +67,7 @@ func (g *Goster) TemplateDir(d string) (err error) {
 func (g *Goster) StaticDir(dir string) (err error) {
 	err = engine.SetStaticDir(dir)
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
+		LogError(err.Error(), g.Logger)
 	}
 
 	err = g.Routes.prepareStaticRoutes(dir)
@@ -121,7 +120,12 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx.prepare(reqURL, dynPath)
+	err := ctx.prepare(reqURL, dynPath)
+
+	if err != nil {
+		panic(err)
+	}
+
 	g.launchHandler(&ctx, reqMethod, reqURL)
 	// Execute global middleware handlers
 	for _, rh := range g.Middleware["*"] {
@@ -149,8 +153,8 @@ func (g *Goster) resolveDynRoute(reqMethod, reqURL, dynPathURL string, route Rou
 	cleanPath(&reqURL)
 
 	if g.isDynRouteMatch(reqURL, dynPathURL) {
-		g.Routes.New(reqMethod, reqURL, route.Handler)
-		return true
+		err := g.Routes.New(reqMethod, reqURL, route.Handler)
+		return err == nil
 	}
 
 	return false
@@ -223,6 +227,9 @@ func (g *Goster) isDynRouteMatch(reqURL string, dynPathURL string) (match bool) 
 func (g *Goster) cleanUp() {
 	if engine.Config.BaseTemplateDir == "" {
 		LogInfo("No specified template directory. Defaulting to `templates/`...", g.Logger)
-		engine.SetTemplateDir("templates")
+		err := engine.SetTemplateDir("templates")
+		if err != nil {
+			LogError(err.Error(), g.Logger)
+		}
 	}
 }

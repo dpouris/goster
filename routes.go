@@ -33,13 +33,15 @@ func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
 		cleanPath(&routePath)
 
 		// register a GET route that serves the file content
-		rs.New("GET", routePath, func(ctx *Ctx) error {
+		err = rs.New("GET", routePath, func(ctx *Ctx) (err error) {
 			contentType := getContentType(file.Name())
 			ctx.Response.Header().Set("Content-Type", contentType)
-			ctx.Response.Write(bytes)
-			return nil
+			_, err = ctx.Response.Write(bytes)
+			return
 		})
-
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "couldn't add route `%s`. Most likely there's a duplicate entry\n", routePath)
+		}
 	}
 
 	return

@@ -52,7 +52,11 @@ func (c *Ctx) HTML(t string) (err error) {
 			// read file
 			fInfo, _ := file.Stat()
 			buf := make([]byte, fInfo.Size())
-			io.ReadFull(file, buf)
+			_, err = io.ReadFull(file, buf)
+			if err != nil {
+				return err
+			}
+
 			t := string(buf)
 
 			// set headers
@@ -73,12 +77,12 @@ func (c *Ctx) Text(s string) {
 }
 
 // Send back a JSON response. Supply j with a value that's valid marsallable(?) to JSON -> error
-func (c *Ctx) JSON(j any) error {
+func (c *Ctx) JSON(j any) (err error) {
 	if v, ok := j.([]byte); ok {
 		cleanEmptyBytes(&v)
 		c.Response.Header().Set("Content-Type", "application/json")
-		c.Response.Write(v)
-		return nil
+		_, err = c.Response.Write(v)
+		return
 	}
 
 	v, err := json.Marshal(j)
@@ -90,8 +94,7 @@ func (c *Ctx) JSON(j any) error {
 
 	c.Response.Header().Set("Content-Type", "application/json")
 	_, err = c.Response.Write(v)
-
-	return err
+	return
 }
 
 func (c *Ctx) prepare(reqURL string, dynPathURL ...string) (err error) {

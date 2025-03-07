@@ -110,8 +110,11 @@ func TestTemplateDir(t *testing.T) {
 	}
 
 	failedCases := make(map[int]TemplateDirMatch, 0)
-	for _, t := range testCases {
-		g.TemplateDir(t.givenPath)
+	for _, tmpl := range testCases {
+		err := g.TemplateDir(tmpl.givenPath)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	t.Logf("TOTAL CASES: %d\n", len(testCases))
@@ -130,8 +133,12 @@ func TestStaticDir(t *testing.T) {
 	}
 
 	failedCases := make(map[int]TemplateDirMatch, 0)
-	for _, t := range testCases {
-		g.StaticDir(t.givenPath)
+	for _, tmpl := range testCases {
+		err := g.StaticDir(tmpl.givenPath)
+		if err != nil {
+			t.Error("could not set templates dir")
+		}
+
 		for route := range g.Routes["GET"] {
 			fmt.Printf("Route %s\n", route)
 		}
