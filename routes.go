@@ -1,12 +1,14 @@
 package goster
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -17,18 +19,19 @@ type Routes map[string]map[string]Route
 // serving its content along with the appropriate Content-Type header.
 // The `dir` parameter should be a relative path from the working directory (the directory you'll execute the program).
 func (rs *Routes) AddStaticDir(dir string) error {
-	ex, err := os.Executable()
-	if err != nil {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
 		fmt.Fprintf(os.Stderr, "cannot determine working directory for static dir %s\n", dir)
-		return err
+		return errors.New("unable to get the current filename")
 	}
-	exPath := filepath.Dir(ex)
+	fileDir := filepath.Dir(filename)
 
 	// construct the full path to the static directory
-	staticPath := path.Join(exPath, dir)
+	staticPath := path.Join(fileDir, dir)
 
+	fmt.Println(staticPath)
 	// walk the directory and register a GET route for each file found
-	err = filepath.WalkDir(staticPath, func(filePath string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(staticPath, func(filePath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
