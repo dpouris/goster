@@ -53,7 +53,7 @@ func matchDynamicPath(dynamicPath, url string) (dp []DynamicPath, isDynamic bool
 		return
 	}
 
-	isDynamic = false
+	isDynamic = true
 
 	dp = make([]DynamicPath, len(dynamicPathSlice))
 	for i, path := range dynamicPathSlice {
