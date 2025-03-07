@@ -123,7 +123,7 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := ctx.prepare(reqURL, dynPath)
 
 	if err != nil {
-		panic(err)
+		LogError(err.Error(), g.Logger)
 	}
 
 	g.launchHandler(&ctx, reqMethod, reqURL)
