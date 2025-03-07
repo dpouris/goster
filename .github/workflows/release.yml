@@ -1,0 +1,43 @@
+name: Release
+on:
+  push:
+    tags: 
+      - 'v*.*.*'   # triggers when a tag like v1.0.0 is pushed
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create releases
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.x'
+
+      # Build binaries or run additional checks
+      - name: Build binary
+        run: GOOS=linux GOARCH=amd64 go build -o goster-linux-amd64 .
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: "Release ${{ github.ref_name }}"
+          body: "Changes in this release..."   # Could be generated or manually edited
+          draft: false
+          prerelease: false
+
+      # iupload built artifact to release
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: goster-linux-amd64
+          asset_name: goster-linux-amd64
+          asset_content_type: application/octet-stream
