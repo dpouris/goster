@@ -8,7 +8,9 @@ jobs:
   build_test_lint:
     runs-on: ubuntu-latest
     permissions:
-      contents: read  # minimal permissions for checking out code
+        contents: read  # minimal permissions for checking out code
+    outputs:
+        lint-out: ${{ steps.lint-code.outputs.lint-out }}
 
     steps:
       - name: Check out code
@@ -54,14 +56,14 @@ jobs:
           path: coverage.out
     
       - name: Lint code
-        id: lint_code
+        id: lint-code
         uses: golangci/golangci-lint-action@v3
         with:
           version: latest
 
       - name: Save lint output
         if: failure()
-        run: echo "${{steps.lint_code.outputs}}" > lint.out
+        run: echo "${{steps.lint-code.outputs.lint-out}}" > lint.out
 
       - name: Upload lint report
         if: failure()
