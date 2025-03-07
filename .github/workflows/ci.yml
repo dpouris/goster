@@ -46,26 +46,26 @@ jobs:
     
       - name: Run tests with coverage
         run: go test -v ./... -coverprofile=coverage.out
-    
-        
-      - name: Lint code
-        id: lint_code
-        uses: golangci/golangci-lint-action@v3
-        with:
-            version: latest
-
-      - name: Save lint output
-        if: always()
-        run: echo "${{steps.lint_code.outputs}}" > lint.out
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.out
+    
+      - name: Lint code
+        id: lint_code
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+      - name: Save lint output
+        if: failure()
+        run: echo "${{steps.lint_code.outputs}}" > lint.out
 
       - name: Upload lint report
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: lint-report
-          path: lint.out
+            name: lint-report
+            path: lint.out
