@@ -1,8 +1,12 @@
 package goster
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"mime"
+	"os"
+	"path"
 	"path/filepath"
 	"strings"
 )
@@ -69,4 +73,26 @@ func getContentType(filename string) string {
 		contentType = "application/octet-stream"
 	}
 	return contentType
+}
+
+func resolveAppPath(dir string) (string, error) {
+	fileDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "cannot determine working directory for static dir %s\n", dir)
+		return dir, err
+	}
+
+	// construct the full path to the static directory
+	return path.Join(fileDir, dir), nil
+}
+
+func pathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }

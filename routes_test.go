@@ -77,7 +77,7 @@ func TestAddStaticDir(t *testing.T) {
 	}
 
 	// Call AddStaticDir with the relative directory.
-	if err := r.AddStaticDir(testDir); err != nil {
+	if err := r.prepareStaticRoutes(testDir); err != nil {
 		t.Fatalf("AddStaticDir returned error: %v", err)
 	}
 
