@@ -55,9 +55,7 @@ jobs:
             version: latest
 
       - name: Save lint output
-        env:
-          LINT_OUTPUT: ${{steps.lint_code.outputs}}
-        run: echo "$LINT_OUTPUT" > lint.out
+        run: echo "${{steps.lint_code.outputs}}" > lint.out
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
