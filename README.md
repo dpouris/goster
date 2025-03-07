@@ -1,15 +1,19 @@
-# Goster
+# Goster 🚀
+[![GoDoc](https://godoc.org/github.com/gomarkdown/markdown?status.svg)](https://pkg.go.dev/github.com/dpouris/goster)
+[![Go Report Card](https://goreportcard.com/badge/github.com/dpouris/goster)](https://goreportcard.com/report/github.com/dpouris/goster)
+[![License](https://img.shields.io/github/license/dpouris/goster)](https://github.com/dpouris/goster/blob/master/LICENSE)
+![Go version](https://img.shields.io/github/go-mod/go-version/dpouris/goster)
 
-Welcome to **Goster**, a lightweight and efficient web framework for Go. Goster provides a minimal abstraction over Go’s built-in `net/http` package, allowing you to rapidly build microservices and APIs with little overheads. Its design emphasizes simplicity and performance, offering an intuitive API for routing, middleware, and more.
+Welcome to **Goster**, a lightweight and efficient web framework for Go. Goster provides a minimal abstraction over Go’s built-in `net/http` package, allowing you to rapidly build microservices and APIs with little overhead. Its design emphasizes simplicity and performance, offering an intuitive API for routing, middleware, and more. 🌟
 
 ## Why Goster?
 
-- **Fast and Lightweight:** Built with simplicity in mind, Goster adds only a thin layer on top of Go’s `net/http`, ensuring minimal performance overhead. Hello-world benchmarks show Goster’s throughput to be on par with the Go standard library and top Go frameworks (Gin handles ~100k req/s on similar hardware ([Fiber vs Gin: A Comparative Analysis for Golang - tillitsdone.com](https://tillitsdone.com/blogs/fiber-vs-gin--golang-framework-guide/#:~:text=Fiber%20leverages%20the%20blazing,110k%20on%20similar%20hardware)), and Goster achieves comparable results).  
-- **Intuitive API:** Goster’s API is easy to learn and use, simplifying web development without sacrificing flexibility. Define routes with clear semantics and handle requests with a simple context object.  
-- **Extensible Middleware:** Add middleware functions globally or for specific routes to enhance functionality. This makes it easy to implement logging, authentication, or other cross-cutting concerns.  
-- **Dynamic Routing:** Effortlessly handle paths with parameters (e.g. `/users/:id`). Goster automatically parses URL parameters for you.  
-- **Static Files & Templates:** Serve static assets (CSS, JS, images, etc.) directly from a directory, and render HTML templates with ease.  
-- **Logging:** Built-in logging captures all incoming requests and application messages. Goster stores logs internally for inspection and can print to stdout with different levels (Info, Warning, Error).
+- 🚀 **Fast and Lightweight:** Built with simplicity in mind, Goster adds only a thin layer on top of Go’s `net/http`, ensuring minimal performance overhead. Hello-world benchmarks show Goster’s throughput to be on par with the Go standard library and top Go frameworks (Gin handles ~100k req/s on similar hardware ([Fiber vs Gin: A Comparative Analysis for Golang - tillitsdone.com](https://tillitsdone.com/blogs/fiber-vs-gin--golang-framework-guide/#:~:text=Fiber%20leverages%20the%20blazing,110k%20on%20similar%20hardware)), and Goster achieves comparable results).  
+- 📊 **Intuitive API:** Goster’s API is easy to learn and use, simplifying web development without sacrificing flexibility. Define routes with clear semantics and handle requests with a simple context object.  
+- 🛠 **Extensible Middleware:** Add middleware functions globally or for specific routes to enhance functionality. This makes it easy to implement logging, authentication, or other cross-cutting concerns.  
+- 🔍 **Dynamic Routing:** Effortlessly handle paths with parameters (e.g. `/users/:id`). Goster automatically parses URL parameters for you.  
+- 🗂️ **Static Files & Templates:** Serve static assets (CSS, JS, images, etc.) directly from a directory, and render HTML templates with ease.  
+- 🧪 **Logging:** Built-in logging captures all incoming requests and application messages. Goster stores logs internally for inspection and can print to stdout with different levels (Info, Warning, Error).
 
 ## Installation
 
@@ -137,6 +141,20 @@ Goster’s API lets you set up routes and middleware in a straightforward way. B
 
 The above examples only scratch the surface. Check out the [docs/](docs) directory for detailed documentation of each feature, and refer to the `examples/` directory in the repository for ready-to-run example programs.
 
+## Documentation
+
+You can find **full documentation** for Goster in the [`docs/`](docs) directory of the repository. The documentation includes guides and reference for all major features:
+
+- [Getting Started](docs/Getting_Started.md) – High-level guide to building a simple service with Goster.  
+- [Routing](docs/Routing.md) – Defining routes, path parameters, and handling requests.  
+- [Middleware](docs/Middleware.md) – Using global and route-specific middleware for advanced functionality.  
+- [Static Files](docs/Static_Files.md) – Serving static content (assets) through Goster.  
+- [Templates](docs/Templates.md) – Configuring template directories and rendering HTML views.  
+- [Context and Responses](docs/Context_and_Responses.md) – How the request context works, and responding with text/JSON.  
+- [Logging](docs/Logging.md) – Utilizing Goster’s logging capabilities for your application.  
+
+Feel free to explore the docs. Each section contains examples and best practices. If something isn’t clear, check the examples provided or raise an issue — we’re here to help!
+
 ## Benchmarks
 
 Performance is a key focus of Goster. We ran benchmarks comparing Goster to other Go web frameworks and the native `net/http` package:
@@ -199,31 +217,17 @@ In summary, **Goster’s niche** is for developers who want a very light, idioma
 
 ## Contribution Guidelines
 
-We warmly welcome contributions from the community. Whether it’s bug fixes, new features, or improvements to documentation, your help is appreciated. To contribute:
+I warmly welcome contributions from the community. Whether it’s bug fixes, new features, or improvements to documentation, your help is appreciated. To contribute:
 
 - **Report Issues:** If you encounter a bug or have a question/idea, open an issue on GitHub. Please provide details and steps to reproduce for bugs. For feature requests, describe the use case and potential solutions.
 - **Submit Pull Requests:** Fork the repository and create a branch for your changes. Try to follow the code style of the project and include tests for any new code. Once you’re ready, open a pull request with a clear description of your changes. The project maintainer will review your contribution.
 - **Join Discussions:** You can also participate in discussions by commenting on issues or proposing design suggestions. Input from users helps shape the project’s direction.
-- **Development Setup:** To work on Goster, clone the repo and run `go mod tidy` to install dependencies. Run `go test ./...` to ensure all tests pass. You can use the example programs under `examples/` for manual testing.
+- **Development Setup:** To work on Goster, clone the repo and run `go mod tidy` to install dependencies. Run `go test ./...` to ensure all tests pass. You can use the example programs under `examples/` for manual testing. There's also a folder called `utilities/` that contains QoL scripts that may come useful during development.
 
 For more detailed guidelines, please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file in the repository.
 
 ## License
 
 Goster is open source and available under the **MIT License**. This means you are free to use, modify, and distribute it in your own projects. See the [LICENSE](LICENSE) file for the full license text.
-
-## Documentation
-
-You can find **full documentation** for Goster in the [`docs/`](docs) directory of the repository. The documentation includes guides and reference for all major features:
-
-- [Getting Started](docs/Getting_Started.md) – High-level guide to building a simple service with Goster.  
-- [Routing](docs/Routing.md) – Defining routes, path parameters, and handling requests.  
-- [Middleware](docs/Middleware.md) – Using global and route-specific middleware for advanced functionality.  
-- [Static Files](docs/Static_Files.md) – Serving static content (assets) through Goster.  
-- [Templates](docs/Templates.md) – Configuring template directories and rendering HTML views.  
-- [Context and Responses](docs/Context_and_Responses.md) – How the request context works, and responding with text/JSON.  
-- [Logging](docs/Logging.md) – Utilizing Goster’s logging capabilities for your application.  
-
-Feel free to explore the docs. Each section contains examples and best practices. If something isn’t clear, check the examples provided or raise an issue — we’re here to help!
 
 Happy coding with Goster! 🚀
