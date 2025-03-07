@@ -1,0 +1,22 @@
+name: "Security Audit"
+on:
+  schedule:
+    - cron: '0 0 * * 0'   # runs every Sunday at midnight
+  workflow_dispatch:      # manual trigger
+jobs:
+  dep-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.x'
+
+      - name: Audit Go Modules for updates
+        run: go list -m -u all > audit.txt
+
+      - name: Display outdated modules
+        run: cat audit.txt

@@ -1,0 +1,21 @@
+name: "Issue Triage"
+on:
+  issues:
+    types: [opened, reopened]
+jobs:
+  label-and-notify:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write   # allow adding labels and comments on issues
+    steps:
+      - name: Add triage label
+        run: gh issue edit "$ISSUE_NUMBER" --add-label "triage"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+
+      - name: Comment on issue
+        run: gh issue comment "$ISSUE_NUMBER" --body "Thanks for opening an issue! Maintainers will review it soon"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}

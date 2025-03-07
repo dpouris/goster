@@ -1,0 +1,34 @@
+name: Docker Image CI
+on:
+    workflow_dispatch: 
+#   push:
+#     tags: 
+#       - 'v*.*.*'
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read      # read access to repo (if needed for Dockerfile)
+      packages: write     # if pushing to GHCR, needed to push packages
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./
+          push: true
+          tags: dpouris/goster:${{ github.ref_name }}, dpouris/goster:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
