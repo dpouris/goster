@@ -221,7 +221,6 @@ func (g *Goster) isDynamicRouteMatch(reqURL string, dynamicPath string) (isDynam
 	cleanPath(&reqURL)
 	cleanPath(&dynamicPath)
 
-	isDynamic = true
 	_, isDynamic = matchDynamicPath(dynamicPath, reqURL)
 	return
 }
