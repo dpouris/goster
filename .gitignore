@@ -1,4 +1,9 @@
 nullbytes.txt
 *.png
 
-.DS_Store
+**/.DS_Store
+**/static/*
+**/templates/*
+
+tests_out/*
+examples_out/*

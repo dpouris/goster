@@ -44,12 +44,10 @@ func (g *Goster) Use(path string, m ...RequestHandler) {
 }
 
 // TemplateDir extends the engine's file paths with the specified directory `d`,
-// which is joined to Engine.Config.BaseStaticDir (default is the current working directory).
+// which is joined to Engine.Config.BaseStaticDir (default is the execution path of the program).
 //
-// This instructs the engine where to look for static files like .html, .gohtml, .css, .js, etc.
+// This instructs the engine where to look for template files like .html, .gohtml.
 // If the directory doesn't exist, it will return an appropriate error.
-//
-// TODO: Should revise this function
 func (g *Goster) TemplateDir(d string) (err error) {
 	err = engine.SetTemplateDir(d)
 
@@ -60,16 +58,22 @@ func (g *Goster) TemplateDir(d string) (err error) {
 	return
 }
 
-// StaticDir sets the directory from which static files are served.
+// StaticDir sets the directory from which static files like .css, .js, etc are served.
+//
 // It integrates the specified directory into the server's static file handling
 // by invoking AddStaticDir on the Routes collection.
+//
 // If an error occurs during this process, the error is printed to the standard error output.
 // The function returns the error encountered, if any.
 func (g *Goster) StaticDir(dir string) (err error) {
-	err = g.Routes.AddStaticDir(dir)
-
+	err = engine.SetStaticDir(dir)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
+	}
+
+	err = g.Routes.prepareStaticRoutes(dir)
+	if err != nil {
+		return fmt.Errorf("could not prepare routes for static files: %s", err)
 	}
 
 	return
@@ -77,6 +81,7 @@ func (g *Goster) StaticDir(dir string) (err error) {
 
 // ListenAndServe starts listening for incoming requests on the specified port (e.g., ":8080").
 func (g *Goster) ListenAndServe(p string) {
+	g.cleanUp()
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
 	log.Fatal(http.ListenAndServe(p, g))
 }
@@ -213,4 +218,11 @@ func (g *Goster) isDynRouteMatch(reqURL string, dynPathURL string) (match bool) 
 	}
 
 	return
+}
+
+func (g *Goster) cleanUp() {
+	if engine.Config.BaseTemplateDir == "" {
+		LogInfo("No specified template directory. Defaulting to `templates/`...", g.Logger)
+		engine.SetTemplateDir("templates")
+	}
 }

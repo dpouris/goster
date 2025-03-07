@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 )
 
 type Ctx struct {
@@ -18,12 +17,14 @@ type Ctx struct {
 
 // Send an HTML template t file to the client. If template not in template dir then will return error.
 func (c *Ctx) Template(t string, data any) (err error) {
-	files := engine.Config.FilePaths
+	templatePaths := engine.Config.TemplatePaths
 
-	for tmpl := range files {
-		if tmpl == path.Join(engine.Config.BaseStaticDir, t) {
-			tm := template.Must(template.ParseFiles(tmpl))
-			err = tm.Execute(c.Response, data)
+	// iterate through all known templates
+	for tmplId := range templatePaths {
+		// if given template matches a known template get the template path, parse it and write it to response
+		if tmplId == t {
+			tmpl := template.Must(template.ParseFiles(templatePaths[tmplId]))
+			err = tmpl.Execute(c.Response, data)
 
 			if err != nil {
 				return err
@@ -36,27 +37,29 @@ func (c *Ctx) Template(t string, data any) (err error) {
 }
 
 // Send an HTML f file to the client. If if file not in FilesDir dir then will return error.
-func (c *Ctx) HTML(f string) (err error) {
-	files := engine.Config.FilePaths
+func (c *Ctx) HTML(t string) (err error) {
+	templatePaths := engine.Config.TemplatePaths
 
-	for fp := range files {
-		if path.Join(engine.Config.BaseStaticDir, f) == fp {
-			file, err := os.Open(fp)
-
+	for tmplId := range templatePaths {
+		if tmplId == t {
+			// open template
+			file, err := os.Open(templatePaths[tmplId])
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}
-
 			defer file.Close()
 
-			f_size, _ := file.Stat()
-			buf := make([]byte, f_size.Size())
+			// read file
+			fInfo, _ := file.Stat()
+			buf := make([]byte, fInfo.Size())
 			io.ReadFull(file, buf)
-
 			t := string(buf)
-			c.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-			fmt.Fprintln(c.Response.ResponseWriter, t)
+			// set headers
+			contentType := getContentType(file.Name())
+			c.Response.Header().Set("Content-Type", contentType)
+
+			fmt.Fprintln(c.Response.ResponseWriter, t) // write response
 		}
 	}
 	return
@@ -65,6 +68,7 @@ func (c *Ctx) HTML(f string) (err error) {
 // Send plain text to the client
 func (c *Ctx) Text(s string) {
 	c.Response.Header().Set("Content-Length", fmt.Sprint(len(s)))
+	c.Response.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(c.Response.ResponseWriter, s)
 }
 

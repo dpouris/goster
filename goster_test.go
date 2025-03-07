@@ -1,6 +1,7 @@
 package goster
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -80,6 +81,60 @@ func TestIsDynRouteMatch(t *testing.T) {
 	for i, c := range failedCases {
 		t.Errorf("FAILED [%d] - %s\n", i, c.name)
 		t.Errorf("Expected %t for '%s' and '%s'", c.expectedResult, c.url, c.dynPath)
+	}
+
+	t.Logf("TOTAL CASES: %d\n", len(testCases))
+	t.Logf("FAILED CASES: %d\n", len(failedCases))
+}
+
+type TemplateDirMatch struct {
+	name        string
+	givenPath   string
+	exectedPath string
+}
+
+func TestTemplateDir(t *testing.T) {
+	g := NewServer()
+
+	testCases := []TemplateDirMatch{
+		{
+			name:        "Test 1",
+			givenPath:   "/templates",
+			exectedPath: "",
+		},
+		// {
+		// 	name:        "Test 2",
+		// 	givenPath:   "/static/templates/",
+		// 	exectedPath: "",
+		// },
+	}
+
+	failedCases := make(map[int]TemplateDirMatch, 0)
+	for _, t := range testCases {
+		g.TemplateDir(t.givenPath)
+	}
+
+	t.Logf("TOTAL CASES: %d\n", len(testCases))
+	t.Logf("FAILED CASES: %d\n", len(failedCases))
+}
+
+func TestStaticDir(t *testing.T) {
+	g := NewServer()
+
+	testCases := []TemplateDirMatch{
+		{
+			name:        "Test 1",
+			givenPath:   "/static",
+			exectedPath: "",
+		},
+	}
+
+	failedCases := make(map[int]TemplateDirMatch, 0)
+	for _, t := range testCases {
+		g.StaticDir(t.givenPath)
+		for route := range g.Routes["GET"] {
+			fmt.Printf("Route %s\n", route)
+		}
 	}
 
 	t.Logf("TOTAL CASES: %d\n", len(testCases))
