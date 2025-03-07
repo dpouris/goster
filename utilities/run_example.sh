@@ -1,43 +1,42 @@
 #!/bin/bash
 
-
-# Check if the correct number of arguments is provided
+#ccheck if number of arguments  provided is correct
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <path_to_example_go_file>"
     exit 1
 fi
 
-# Get the path to the example Go file
+# path to the example file
 example_file=$1
 
-# Check if the file exists
+# check if file exits
 if [ ! -f "$example_file" ]; then
-    echo "File not found: $example_file"
+    echo "file \`$example_file\` not found"
     exit 1
 fi
 
-# Create the output directory if it doesn't exist
+# make output directory if it doesnt exist
 output_dir="./examples_out"
 mkdir -p "$output_dir"
 
-# Get the base name of the example file (without the extension)
+# get the name of the example file without extension .go
 base_name=$(basename "$example_file" .go)
 
-# Get the directory name of the example file
+# dir name of the example file
 dir_name=$(basename $(dirname "$example_file"))
 
-# Create the directory for the compiled file
+# make dir for the compiled file
 compiled_dir="$output_dir/$dir_name"
 mkdir -p "$compiled_dir"
 
-# Compile the Go file
+# compile
 go build -o "$compiled_dir/$base_name" "$example_file"
 
-# Check if the compilation was successful
+# check if compilation was successful
 if [ $? -ne 0 ]; then
-    echo "Failed to compile $example_file"
+    echo "failed to compile $example_file"
     exit 1
 fi
 
-# Run the compiled file
+# run
 "$compiled_dir/$base_name"
