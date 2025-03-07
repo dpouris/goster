@@ -128,8 +128,11 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	g.launchHandler(&ctx, reqMethod, reqURL)
 	// Execute global middleware handlers
-	for _, rh := range g.Middleware["*"] {
-		rh(&ctx)
+	for _, middleware := range g.Middleware["*"] {
+		err := middleware(&ctx)
+		if err != nil {
+			LogError(fmt.Sprintf("error occured while running global middleware: %s", err.Error()), g.Logger)
+		}
 	}
 }
 
@@ -141,10 +144,19 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 	HandleLog(ctx, g, nil) // TODO: ???????
 
 	route := g.Routes[reqMethod][reqURL]
-	defer route.Handler(ctx)
+	defer func() {
+		err := route.Handler(ctx)
+		// TODO: figure out what to do with handler error
+		if err != nil {
+			LogError(err.Error(), g.Logger)
+		}
+	}()
 	// Run all route-specific middleware defined by the user
 	for _, rh := range g.Middleware[reqURL] {
-		rh(ctx)
+		err := rh(ctx)
+		if err != nil {
+			LogError(fmt.Sprintf("error occured while running middleware: %s", err.Error()), g.Logger)
+		}
 	}
 }
 
