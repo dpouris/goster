@@ -102,13 +102,13 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	DefaultHeader(&ctx)
 
 	// Construct a normal route from URL path if it matches a specific dynamic route
-	var dynPath string
-	for dynPathURL, route := range g.Routes[reqMethod] {
+	var dynamicPath string
+	for dyn, route := range g.Routes[reqMethod] {
 		if route.Type != "dynamic" {
 			continue
 		}
-		if g.resolveDynRoute(reqMethod, reqURL, dynPathURL, route) {
-			dynPath = dynPathURL
+		if g.resolveDynamicRoute(reqMethod, reqURL, dyn, route) {
+			dynamicPath = dyn
 			break
 		}
 	}
@@ -120,11 +120,7 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := ctx.prepare(reqURL, dynPath)
-
-	if err != nil {
-		LogError(err.Error(), g.Logger)
-	}
+	ctx.prepareURL(reqURL, dynamicPath)
 
 	g.launchHandler(&ctx, reqMethod, reqURL)
 	// Execute global middleware handlers
@@ -160,11 +156,11 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 	}
 }
 
-// resolveDynRoute constructs a normal route from URL path if it matches a specific dynamic route.
-func (g *Goster) resolveDynRoute(reqMethod, reqURL, dynPathURL string, route Route) bool {
+// resolveDynamicRoute constructs a normal route from URL path if it matches a specific dynamic route.
+func (g *Goster) resolveDynamicRoute(reqMethod, reqURL, dynamicPath string, route Route) bool {
 	cleanPath(&reqURL)
 
-	if g.isDynRouteMatch(reqURL, dynPathURL) {
+	if g.isDynamicRouteMatch(reqURL, dynamicPath) {
 		err := g.Routes.New(reqMethod, reqURL, route.Handler)
 		return err == nil
 	}
@@ -207,32 +203,25 @@ func (g *Goster) validateRoute(reqMethod, reqURL string) int {
 	return http.StatusOK
 }
 
-// isDynRouteMatch checks URL path `reqURL` matches a Dynamic Route path
-// `dynPathURL`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
+// isDynamicRouteMatch checks URL path `reqURL` matches a Dynamic Route path
+// `dynamicPath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
 // is a catch-all identifier that matches any route with the same structure up to that point.
 //
 // Ex:
 //
 //	var ctx = ...
 //	var url = "path/anotherPath/andYetAnotherPath"
-//	var dynPath = "path/anotherPath/:identifier"
-//	if !isDynamicRouteMatch(&ctx, url, dynPath) {
+//	var dynamicPath = "path/anotherPath/:identifier"
+//	if !isDynamicRouteMatch(&ctx, url, dynamicPath) {
 //			panic(...)
 //	}
 //
 // The above code will not panic as the isDynamicRouteMatch will evaluate to `true`
-func (g *Goster) isDynRouteMatch(reqURL string, dynPathURL string) (match bool) {
+func (g *Goster) isDynamicRouteMatch(reqURL string, dynamicPath string) (isDynamic bool) {
 	cleanPath(&reqURL)
-	cleanPath(&dynPathURL)
+	cleanPath(&dynamicPath)
 
-	match = true
-	_, err := matchDynPathValue(dynPathURL, reqURL)
-
-	if err != nil {
-		match = false
-		return
-	}
-
+	_, isDynamic = matchDynamicPath(dynamicPath, reqURL)
 	return
 }
 
