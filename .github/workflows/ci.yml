@@ -64,7 +64,7 @@ jobs:
         run: echo "${{steps.lint_code.outputs}}" > lint.out
 
       - name: Upload lint report
-        if: success()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
             name: lint-report
