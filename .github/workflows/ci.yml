@@ -5,10 +5,11 @@ on:
   pull_request:
     branches: [ master ]
 jobs:
-  build-test-lint:
+  build_test_lint:
     runs-on: ubuntu-latest
     permissions:
       contents: read  # minimal permissions for checking out code
+
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -46,13 +47,26 @@ jobs:
       - name: Run tests with coverage
         run: go test -v ./... -coverprofile=coverage.out
     
+        
+      - name: Lint code
+        id: lint_code
+        uses: golangci/golangci-lint-action@v3
+        with:
+            version: latest
+
+      - name: Save lint output
+        env:
+          LINT_OUTPUT: ${{steps.lint_code.outputs}}
+        run: echo "$LINT_OUTPUT" > lint.out
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.out
-    
-      - name: Lint code
-        uses: golangci/golangci-lint-action@v3
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
         with:
-          version: latest
+          name: lint-report
+          path: lint.out
