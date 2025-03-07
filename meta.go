@@ -1,7 +1,6 @@
 package goster
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 )
@@ -40,10 +39,10 @@ func (p *Path) Get(id string) (value string, exists bool) {
 //
 // If there're, ParseUrl will construct a Params struct and populate Meta.Query.Params
 //
-// If there aren't any, ParseUrl will return the error that occurred
+// If there aren't any, ParseUrl will return
 //
 // The `url` string reference that is passed in will have the parameters stripped in either case
-func (m *Meta) ParseUrl(url string) (err error) {
+func (m *Meta) ParseUrl(url string) {
 	paramValues := make(map[string]string, 0)
 	paramPattern := regexp.MustCompile(`\?.+(\/)?`)
 
@@ -55,7 +54,6 @@ func (m *Meta) ParseUrl(url string) (err error) {
 	params = strings.Trim(params, "/?")
 
 	if len(params) == 0 {
-		err = errors.New("no query parameters")
 		return
 	}
 
@@ -72,17 +70,17 @@ func (m *Meta) ParseUrl(url string) (err error) {
 	return
 }
 
-func (m *Meta) ParseDynPath(reqURL, dynPathURL string) (err error) {
+func (m *Meta) ParseDynamicPath(reqURL, dynamicPath string) {
 	cleanPath(&reqURL)
-	cleanPath(&dynPathURL)
-	dynPaths, err := matchDynPathValue(dynPathURL, reqURL)
+	cleanPath(&dynamicPath)
+	dynamicPaths, isDynamic := matchDynamicPath(dynamicPath, reqURL)
 
-	if err != nil {
+	if !isDynamic {
 		return
 	}
 
-	for _, dynPath := range dynPaths {
-		m.Path[dynPath.path] = dynPath.value
+	for _, dynamicPath := range dynamicPaths {
+		m.Path[dynamicPath.path] = dynamicPath.value
 	}
 
 	return

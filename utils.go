@@ -44,17 +44,19 @@ func cleanEmptyBytes(b *[]byte) {
 	*b = cleaned
 }
 
-func matchDynPathValue(dynPath, url string) (dp []DynamicPath, err error) {
-	dynPathSlice := strings.Split(dynPath, "/")
+func matchDynamicPath(dynamicPath, url string) (dp []DynamicPath, isDynamic bool) {
+	isDynamic = false
+	dynamicPathSlice := strings.Split(dynamicPath, "/")
 	urlSice := strings.Split(url, "/")
 
-	if len(dynPathSlice) != len(urlSice) {
-		err = fmt.Errorf("request URL path `%s` does not match with dynamic Route path `%s`", url, dynPath)
+	if len(dynamicPathSlice) != len(urlSice) {
 		return
 	}
 
-	dp = make([]DynamicPath, len(dynPathSlice))
-	for i, path := range dynPathSlice {
+	isDynamic = false
+
+	dp = make([]DynamicPath, len(dynamicPathSlice))
+	for i, path := range dynamicPathSlice {
 		if strings.ContainsRune(path, ':') {
 			dp = append(dp, DynamicPath{
 				path:  strings.TrimPrefix(path, ":"),
