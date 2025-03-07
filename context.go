@@ -103,6 +103,4 @@ func (c *Ctx) prepareURL(url string, dynamicPath ...string) {
 	if len(dynamicPath) > 0 {
 		c.Meta.ParseDynamicPath(url, dynamicPath[0])
 	}
-
-	return
 }

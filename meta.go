@@ -66,8 +66,6 @@ func (m *Meta) ParseUrl(url string) {
 
 		paramValues[query[0]] = query[1]
 	}
-
-	return
 }
 
 func (m *Meta) ParseDynamicPath(reqURL, dynamicPath string) {
@@ -82,6 +80,4 @@ func (m *Meta) ParseDynamicPath(reqURL, dynamicPath string) {
 	for _, dynamicPath := range dynamicPaths {
 		m.Path[dynamicPath.path] = dynamicPath.value
 	}
-
-	return
 }
