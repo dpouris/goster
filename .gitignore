@@ -7,3 +7,5 @@ nullbytes.txt
 
 tests_out/*
 examples_out/*
+
+*.ignoreme
