@@ -64,7 +64,13 @@ func (e *Engine) SetTemplateDir(path string) (err error) {
 
 	// if the given directory doesn't exist, create it and report it
 	if ok, _ := pathExists(templateDir); !ok {
-		os.Mkdir(templateDir, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
+		err = os.Mkdir(templateDir, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
+
+		if err != nil {
+			err = fmt.Errorf("template dir couldn't be created: %s", err)
+			return
+		}
+
 		fmt.Printf("[ENGINE INFO] - given template path `%s` doesn't exist\n", path)
 		fmt.Printf("[ENGINE INFO] - creating `%s`...\n", path)
 	}
@@ -107,7 +113,13 @@ func (e *Engine) SetStaticDir(path string) (err error) {
 
 	// if the given directory doesn't exist, create it and report it
 	if ok, _ := pathExists(staticPath); !ok {
-		os.Mkdir(staticPath, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
+		err = os.Mkdir(staticPath, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
+
+		if err != nil {
+			err = fmt.Errorf("static dir couldn't be created: %s", err)
+			return
+		}
+
 		fmt.Printf("[ENGINE INFO] - given static path `%s` doesn't exist\n", path)
 		fmt.Printf("[ENGINE INFO] - creating static path `%s`...\n", path)
 	}
