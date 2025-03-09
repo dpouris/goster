@@ -102,13 +102,17 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	DefaultHeader(&ctx)
 
 	// Construct a normal route from URL path if it matches a specific dynamic route
-	var dynamicPath string
-	for dyn, route := range g.Routes[reqMethod] {
+	for urlPath, route := range g.Routes[reqMethod] {
 		if route.Type != "dynamic" {
 			continue
 		}
-		if g.resolveDynamicRoute(reqMethod, reqURL, dyn, route) {
-			dynamicPath = dyn
+
+		if g.resolveDynamicRoute(reqURL, urlPath, route) {
+			ctx.prepareMeta(reqURL, urlPath)
+			err := g.Routes.New(reqMethod, reqURL, route.Handler)
+			if err != nil {
+				_ = fmt.Errorf("route %s is duplicate", reqURL) // TODO: it is duplicate, handle
+			}
 			break
 		}
 	}
@@ -119,8 +123,6 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ctx.Response.WriteHeader(status)
 		return
 	}
-
-	ctx.prepareURL(reqURL, dynamicPath)
 
 	g.launchHandler(&ctx, reqMethod, reqURL)
 	// Execute global middleware handlers
@@ -157,15 +159,9 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 }
 
 // resolveDynamicRoute constructs a normal route from URL path if it matches a specific dynamic route.
-func (g *Goster) resolveDynamicRoute(reqMethod, reqURL, dynamicPath string, route Route) bool {
+func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bool {
 	cleanPath(&reqURL)
-
-	if g.isDynamicRouteMatch(reqURL, dynamicPath) {
-		err := g.Routes.New(reqMethod, reqURL, route.Handler)
-		return err == nil
-	}
-
-	return false
+	return g.isDynamicRouteMatch(reqURL, dynamicPath)
 }
 
 // validateRoute checks if the route "reqURL" exists inside the `g.Routes` collection

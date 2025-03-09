@@ -97,7 +97,7 @@ func (c *Ctx) JSON(j any) (err error) {
 	return
 }
 
-func (c *Ctx) prepareURL(url string, dynamicPath ...string) {
+func (c *Ctx) prepareMeta(url string, dynamicPath ...string) {
 	c.Meta.ParseUrl(url)
 
 	if len(dynamicPath) > 0 {
