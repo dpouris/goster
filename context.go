@@ -36,6 +36,30 @@ func (c *Ctx) Template(t string, data any) (err error) {
 	return
 }
 
+// Send an HTML template t file to the client. TemplateWithFuncs supports functions to be embedded in the html template for use. If template not in template dir then will return error.
+func (c *Ctx) TemplateWithFuncs(t string, data any, funcMap template.FuncMap) (err error) {
+	templatePaths := engine.Config.TemplatePaths
+
+	// iterate through all known templates
+	for tmplId := range templatePaths {
+		// if given template matches a known template get the template path, parse it and write it to response
+		if tmplId == t {
+			tmpl := template.Must(template.ParseFiles(templatePaths[tmplId]))
+			if len(funcMap) != 0 {
+				tmpl = tmpl.Funcs(funcMap)
+			}
+			err = tmpl.Execute(c.Response, data)
+
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+
+	return
+}
+
 // Send an HTML f file to the client. If if file not in FilesDir dir then will return error.
 func (c *Ctx) HTML(t string) (err error) {
 	templatePaths := engine.Config.TemplatePaths
