@@ -45,7 +45,7 @@ func (c *Ctx) TemplateWithFuncs(t string, data any, funcMap template.FuncMap) (e
 		// if given template matches a known template get the template path, parse it and write it to response
 		if tmplId == t {
 			tmplFile := templatePaths[tmplId]
-			tmpl := template.Must(template.New(tmplFile).Funcs(funcMap).ParseFiles(tmplFile))
+			tmpl := template.Must(template.New(tmplId).Funcs(funcMap).ParseFiles(tmplFile))
 			err = tmpl.Execute(c.Response, data)
 
 			if err != nil {
