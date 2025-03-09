@@ -108,7 +108,6 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if g.resolveDynamicRoute(reqURL, urlPath, route) {
-			cleanPath(&reqURL)
 			ctx.prepareMeta(reqURL, urlPath)
 			err := g.Routes.New(reqMethod, reqURL, route.Handler)
 			if err != nil {
@@ -162,12 +161,7 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 // resolveDynamicRoute constructs a normal route from URL path if it matches a specific dynamic route.
 func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bool {
 	cleanPath(&reqURL)
-
-	if g.isDynamicRouteMatch(reqURL, dynamicPath) {
-		return true
-	}
-
-	return false
+	return g.isDynamicRouteMatch(reqURL, dynamicPath)
 }
 
 // validateRoute checks if the route "reqURL" exists inside the `g.Routes` collection
