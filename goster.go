@@ -38,7 +38,7 @@ func (g *Goster) UseGlobal(m ...RequestHandler) {
 
 // Use adds middleware handlers that will be applied to specific routes/paths.
 func (g *Goster) Use(path string, m ...RequestHandler) {
-	cleanPath(&path)
+	cleanURLPath(&path)
 	g.Middleware[path] = m
 }
 
@@ -138,8 +138,8 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // launchHandler launches the necessary handler for the incoming request based on the route.
 func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
-	cleanPath(&reqURL)
-	HandleLog(ctx, g, nil) // TODO: ???????
+	cleanURLPath(&reqURL)
+	logRequest(ctx, g, nil) // TODO: streamline middleware
 
 	route := g.Routes[reqMethod][reqURL]
 	defer func() {
@@ -160,7 +160,7 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 
 // resolveDynamicRoute constructs a normal route from URL path if it matches a specific dynamic route.
 func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bool {
-	cleanPath(&reqURL)
+	cleanURLPath(&reqURL)
 	return g.isDynamicRouteMatch(reqURL, dynamicPath)
 }
 
@@ -175,7 +175,7 @@ func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bo
 //
 // If "reqURL" doesn't exist then the status `http.StatusNotFound` is returned
 func (g *Goster) validateRoute(reqMethod, reqURL string) int {
-	cleanPath(&reqURL)
+	cleanURLPath(&reqURL)
 	methodAllowed := false
 	routeExists := false
 
@@ -214,8 +214,8 @@ func (g *Goster) validateRoute(reqMethod, reqURL string) int {
 //
 // The above code will not panic as the isDynamicRouteMatch will evaluate to `true`
 func (g *Goster) isDynamicRouteMatch(reqURL string, dynamicPath string) (isDynamic bool) {
-	cleanPath(&reqURL)
-	cleanPath(&dynamicPath)
+	cleanURLPath(&reqURL)
+	cleanURLPath(&dynamicPath)
 
 	_, isDynamic = matchDynamicPath(dynamicPath, reqURL)
 	return

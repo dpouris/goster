@@ -1,9 +1,7 @@
 package goster
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
 	"mime"
 	"os"
 	"path"
@@ -18,9 +16,9 @@ func DefaultHeader(c *Ctx) {
 	c.Response.Header().Set("Keep-Alive", "timeout=5, max=997")
 }
 
-// cleanPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
+// cleanURLPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
 // they will be removed as well.
-func cleanPath(path *string) {
+func cleanURLPath(path *string) {
 	if len(*path) == 0 {
 		return
 	}
@@ -30,18 +28,6 @@ func cleanPath(path *string) {
 	}
 
 	*path = strings.TrimSuffix(*path, "/")
-}
-
-func cleanEmptyBytes(b *[]byte) {
-	cleaned := []byte{}
-
-	for _, v := range *b {
-		if v == 0 {
-			break
-		}
-		cleaned = append(cleaned, v)
-	}
-	*b = cleaned
 }
 
 func matchDynamicPath(dynamicPath, url string) (dp []DynamicPath, isDynamic bool) {
@@ -90,13 +76,19 @@ func resolveAppPath(dir string) (string, error) {
 	return path.Join(fileDir, dir), nil
 }
 
-func pathExists(path string) (bool, error) {
+func pathExists(path string) (exists bool) {
 	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if errors.Is(err, fs.ErrNotExist) {
-		return false, nil
-	}
-	return false, err
+	return err == nil
 }
+
+// func cleanEmptyBytes(b *[]byte) {
+// 	cleaned := []byte{}
+
+// 	for _, v := range *b {
+// 		if v == 0 {
+// 			break
+// 		}
+// 		cleaned = append(cleaned, v)
+// 	}
+// 	*b = cleaned
+// }
