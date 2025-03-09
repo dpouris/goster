@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 )
 
 type Ctx struct {
@@ -103,7 +104,9 @@ func (c *Ctx) Text(s string) {
 // Send back a JSON response. Supply j with a value that's valid marsallable(?) to JSON -> error
 func (c *Ctx) JSON(j any) (err error) {
 	if v, ok := j.([]byte); ok {
-		cleanEmptyBytes(&v)
+		v = slices.DeleteFunc(v, func(b byte) bool {
+			return b == 0
+		})
 		c.Response.Header().Set("Content-Type", "application/json")
 		_, err = c.Response.Write(v)
 		return

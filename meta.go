@@ -69,8 +69,8 @@ func (m *Meta) ParseUrl(url string) {
 }
 
 func (m *Meta) ParseDynamicPath(reqURL, dynamicPath string) {
-	cleanPath(&reqURL)
-	cleanPath(&dynamicPath)
+	cleanURLPath(&reqURL)
+	cleanURLPath(&dynamicPath)
 	dynamicPaths, isDynamic := matchDynamicPath(dynamicPath, reqURL)
 
 	if !isDynamic {

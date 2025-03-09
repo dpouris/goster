@@ -1,6 +1,6 @@
 package goster
 
-func HandleLog(c *Ctx, g *Goster, err error) {
+func logRequest(c *Ctx, g *Goster, err error) {
 	m := c.Request.Method
 	u := c.Request.URL.String()
 
@@ -14,3 +14,5 @@ func HandleLog(c *Ctx, g *Goster, err error) {
 	g.Logs = append(g.Logs, l)
 	LogInfo(l, g.Logger)
 }
+
+// TODO: should be auth middleware

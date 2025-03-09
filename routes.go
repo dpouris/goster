@@ -12,32 +12,19 @@ type Routes map[string]map[string]Route
 
 func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
 	staticPaths := engine.Config.StaticFilePaths
-
 	for relPath := range staticPaths {
-		file, err := os.Open(staticPaths[relPath])
+		staticPath := staticPaths[relPath]
+		file, err := os.Open(staticPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "cannot open static file `%s` in dir `%s`\n", file.Name(), relPath)
-			return err
-		}
-		defer file.Close()
-
-		// read the file contents
-		bytes, err := io.ReadAll(file)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "cannot read static file `%s` in dir `%s`\n", file.Name(), relPath)
+			fmt.Fprintf(os.Stderr, "cannot open static file `%s`\n", file.Name())
 			return err
 		}
 
-		// compute the route path relative to the static directory
+		// register a GET route that serves the static file
 		routePath := filepath.Join(dir, relPath)
-		cleanPath(&routePath)
-
-		// register a GET route that serves the file content
-		err = rs.New("GET", routePath, func(ctx *Ctx) (err error) {
-			contentType := getContentType(file.Name())
-			ctx.Response.Header().Set("Content-Type", contentType)
-			_, err = ctx.Response.Write(bytes)
-			return
+		cleanURLPath(&routePath)
+		err = rs.New("GET", routePath, func(ctx *Ctx) error {
+			return staticFileHandler(ctx, file)
 		})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "couldn't add route `%s`. Most likely there's a duplicate entry\n", routePath)
@@ -61,7 +48,7 @@ func (rs *Routes) New(method string, url string, handler RequestHandler) (err er
 		routeType = "dynamic"
 	}
 
-	cleanPath(&url)
+	cleanURLPath(&url)
 
 	(*rs)[method][url] = Route{Type: routeType, Handler: handler}
 
@@ -91,4 +78,19 @@ func (g *Goster) Put(path string, handler RequestHandler) error {
 // Delete creates a new Route under the DELETE method for `path`. If the Route aleady exists an error is returned.
 func (g *Goster) Delete(path string, handler RequestHandler) error {
 	return g.Routes.New("DELETE", path, handler)
+}
+
+func staticFileHandler(ctx *Ctx, file *os.File) (err error) {
+	// read the file contents
+	file.Seek(0, 0)
+	fInfo, _ := file.Stat()
+	fSize := fInfo.Size()
+	buffer := make([]byte, fSize)
+	_, _ = io.ReadFull(file, buffer)
+
+	// prepare and write response
+	contentType := getContentType(file.Name())
+	ctx.Response.Header().Set("Content-Type", contentType)
+	_, err = ctx.Response.Write(buffer)
+	return
 }

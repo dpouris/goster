@@ -64,7 +64,7 @@ func (e *Engine) SetTemplateDir(path string) (err error) {
 	}
 
 	// if the given directory doesn't exist, create it and report it
-	if ok, _ := pathExists(templateDir); !ok {
+	if exists := pathExists(templateDir); !exists {
 		err = os.Mkdir(templateDir, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
 
 		if err != nil {
@@ -117,7 +117,7 @@ func (e *Engine) SetStaticDir(path string) (err error) {
 	}
 
 	// if the given directory doesn't exist, create it and report it
-	if ok, _ := pathExists(staticPath); !ok {
+	if exists := pathExists(staticPath); !exists {
 		err = os.Mkdir(staticPath, 0o711) // rwx--x--x (o+rwx) (g+x) (u+x)
 
 		if err != nil {
@@ -141,7 +141,7 @@ func (e *Engine) SetStaticDir(path string) (err error) {
 		if !d.IsDir() {
 			// compute the route path relative to the static directory
 			relPath, _ := filepath.Rel(staticPath, filePath)
-			cleanPath(&relPath)
+			cleanURLPath(&relPath)
 
 			staticFileMap[relPath] = filePath
 		}
