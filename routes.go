@@ -82,7 +82,10 @@ func (g *Goster) Delete(path string, handler RequestHandler) error {
 
 func staticFileHandler(ctx *Ctx, file *os.File) (err error) {
 	// read the file contents
-	file.Seek(0, 0)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return
+	}
 	fInfo, _ := file.Stat()
 	fSize := fInfo.Size()
 	buffer := make([]byte, fSize)
