@@ -64,6 +64,12 @@ func TestIsDynRouteMatch(t *testing.T) {
 			url:            "path/another_path/something/something2/",
 			expectedResult: true,
 		},
+		{
+			name:           "Depth 2 with wrong static path (with '/' suffix on URL)",
+			dynamicPath:    "path/another_path/:var/:var2",
+			url:            "path/wrong_path/something/something2/",
+			expectedResult: false,
+		},
 	}
 
 	failedCases := make(map[int]IsDynamicMatchCase, 0)

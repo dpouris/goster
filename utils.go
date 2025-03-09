@@ -45,27 +45,29 @@ func cleanEmptyBytes(b *[]byte) {
 }
 
 func matchDynamicPath(dynamicPath, url string) (dp []DynamicPath, isDynamic bool) {
-	isDynamic = false
 	dynamicPathSlice := strings.Split(dynamicPath, "/")
-	urlSice := strings.Split(url, "/")
+	urlSlice := strings.Split(url, "/")
 
-	if len(dynamicPathSlice) != len(urlSice) {
-		return
+	if len(dynamicPathSlice) != len(urlSlice) {
+		return nil, false
 	}
 
-	isDynamic = true
-
-	dp = make([]DynamicPath, len(dynamicPathSlice))
-	for i, path := range dynamicPathSlice {
-		if strings.ContainsRune(path, ':') {
+	hasDynamic := false
+	dp = []DynamicPath{}
+	for i, seg := range dynamicPathSlice {
+		if strings.HasPrefix(seg, ":") {
+			hasDynamic = true
 			dp = append(dp, DynamicPath{
-				path:  strings.TrimPrefix(path, ":"),
-				value: urlSice[i],
+				path:  strings.TrimPrefix(seg, ":"),
+				value: urlSlice[i],
 			})
+		} else if seg != urlSlice[i] {
+			// static segment doesn't match
+			return nil, false
 		}
 	}
 
-	return
+	return dp, hasDynamic
 }
 
 func getContentType(filename string) string {
