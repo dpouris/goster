@@ -33,12 +33,11 @@ func main() {
 
     // Define a route for GET /
     g.Get("/", func(ctx *goster.Ctx) error {
-        ctx.Text("Welcome to Goster!")
-        return nil
+        return ctx.Text("Welcome to Goster!")
     })
 
     // Start the server on port 8080
-    g.ListenAndServe(":8080")
+    g.Start(":8080")
 }
 ```
 
@@ -54,9 +53,25 @@ Open your browser (or use `curl`) and visit `http://localhost:8080`. You should 
 
 - We created a Goster server with `goster.NewServer()`. This gives us an instance `g` that will handle HTTP requests.
 - We added a route using `g.Get("/")`. The first argument is the path (`"/"` for the root). The second argument is a **handler function** that Goster will call when a request comes in for that path. Our handler function uses `ctx.Text` to send a plain-text response.
-- Finally, `g.ListenAndServe(":8080")` starts an HTTP server on port 8080 and begins listening for requests. Under the hood, this uses Go’s `http.ListenAndServe`, passing Goster’s router as the handler.
+- Finally, `g.Start(":8080")` starts an HTTP server on port 8080 and begins listening for requests. Under the hood, this uses Go’s `http.ListenAndServe`, passing Goster’s router as the handler.
 
 When you visited the URL, Goster received the request, matched it to the `/` route, and executed your handler, which wrote “Welcome to Goster!” back to the client.
+
+## Secure Server with TLS
+
+Goster also supports running an HTTPS server using TLS. For example, set up your certificate and key files and start the server with:
+
+```go
+package main
+
+import "github.com/dpouris/goster"
+
+func main() {
+    g := goster.NewServer()
+    // Replace with the actual paths to your certificate and key
+    g.StartTLS(":8443", "path/to/cert.pem", "path/to/key.pem")
+}
+```
 
 ## Next Steps
 

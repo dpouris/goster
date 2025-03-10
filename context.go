@@ -70,7 +70,7 @@ func (c *Ctx) HTML(t string) (err error) {
 			// open template
 			file, err := os.Open(templatePaths[tmplId])
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
+				fmt.Fprintln(os.Stderr, err)
 			}
 			defer file.Close()
 
@@ -88,7 +88,7 @@ func (c *Ctx) HTML(t string) (err error) {
 			contentType := getContentType(file.Name())
 			c.Response.Header().Set("Content-Type", contentType)
 
-			fmt.Fprintln(c.Response.ResponseWriter, t) // write response
+			fmt.Fprint(c.Response.ResponseWriter, t) // write response
 		}
 	}
 	return

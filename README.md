@@ -42,7 +42,23 @@ func main() {
         return nil
     })
 
-    g.ListenAndServe(":8080")
+    // Use the new Start function instead of ListenAndServe
+    g.Start(":8080")
+}
+```
+
+You can also start a secure server with TLS:
+
+```go
+package main
+
+import "github.com/dpouris/goster"
+
+func main() {
+    g := goster.NewServer()
+    
+    // Replace with actual certificate and key paths
+    g.StartTLS(":8443", "path/to/cert.pem", "path/to/key.pem")
 }
 ```
 
