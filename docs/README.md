@@ -8,19 +8,19 @@ Welcome to the **Goster Documentation** directory. This README organizes and lin
   Setup instructions and a basic example to run your first Goster server.
   
 - [Routing](Routing.md)  
-  Learn how to define routes, use dynamic segments, and handle path parameters.
+  Learn how to define routes, dynamic segments, and path parameters.
   
 - [Templates](Templates.md)  
-  Information on setting the template directory, creating templates, and rendering them.
+  Configuring template directories and rendering views.
   
 - [Static Files](Static_Files.md)  
-  How to serve static assets like HTML, CSS, JavaScript, and images with Goster.
+  Serving assets through Goster.
   
 - [Middleware](Middleware.md)  
-  Guidance on adding middleware for logging, authentication, error handling, etc.
+  Applying global and route-specific middleware.
   
 - [Logging](Logging.md)  
-  Understand Goster's built-in logging, how to use it, and how to access request logs.
+  How Goster logs events and request data.
   
 - [Context and Responses](Context_and_Responses.md)  
-  Detailed explanation of Goster's context (`Ctx`), request reading, and response writing.
+  Handling incoming requests and constructing responses.
