@@ -8,7 +8,10 @@ jobs:
     permissions:
       issues: write   # allow adding labels and comments on issues
     steps:
-      - name: Add triage label
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Add git triage label
         run: gh issue edit "$ISSUE_NUMBER" --add-label "triage"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
