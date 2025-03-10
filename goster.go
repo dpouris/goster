@@ -88,7 +88,7 @@ func (g *Goster) Start(p string) {
 func (g *Goster) StartTLS(addr string, certFile string, keyFile string) {
 	g.cleanUp()
 	LogInfo("LISTENING ON https://127.0.0.1"+addr, g.Logger)
-	http.ListenAndServeTLS(addr, certFile, keyFile, g)
+	log.Fatal(http.ListenAndServeTLS(addr, certFile, keyFile, g))
 }
 
 // ServeHTTP is the handler for incoming HTTP requests to the server.
