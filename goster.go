@@ -78,11 +78,17 @@ func (g *Goster) StaticDir(dir string) (err error) {
 	return
 }
 
-// ListenAndServe starts listening for incoming requests on the specified port (e.g., ":8080").
-func (g *Goster) ListenAndServe(p string) {
+// Start starts listening for incoming requests on the specified port (e.g., ":8080").
+func (g *Goster) Start(p string) {
 	g.cleanUp()
 	LogInfo("LISTENING ON http://127.0.0.1"+p, g.Logger)
 	log.Fatal(http.ListenAndServe(p, g))
+}
+
+func (g *Goster) StartTLS(addr string, certFile string, keyFile string) {
+	g.cleanUp()
+	LogInfo("LISTENING ON https://127.0.0.1"+addr, g.Logger)
+	http.ListenAndServeTLS(addr, certFile, keyFile, g)
 }
 
 // ServeHTTP is the handler for incoming HTTP requests to the server.

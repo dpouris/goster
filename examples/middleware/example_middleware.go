@@ -20,5 +20,5 @@ func main() {
 		return nil
 	})
 
-	g.ListenAndServe(":8080")
+	g.Start(":8080")
 }
