@@ -5,17 +5,15 @@ import (
 	"testing"
 )
 
-type IsDynamicMatchCase struct {
+type IsDynamicRouteCase struct {
 	name           string
 	url            string
 	dynamicPath    string
 	expectedResult bool
 }
 
-func TestIsDynRouteMatch(t *testing.T) {
-	g := NewServer()
-
-	testCases := []IsDynamicMatchCase{
+func TestIsDynamicRoute(t *testing.T) {
+	testCases := []IsDynamicRouteCase{
 		{
 			name:           "Depth 1",
 			dynamicPath:    "path/another_path/:var",
@@ -72,9 +70,9 @@ func TestIsDynRouteMatch(t *testing.T) {
 		},
 	}
 
-	failedCases := make(map[int]IsDynamicMatchCase, 0)
+	failedCases := make(map[int]IsDynamicRouteCase, 0)
 	for i, c := range testCases {
-		if g.isDynamicRouteMatch(c.url, c.dynamicPath) != c.expectedResult {
+		if matchesDynamicRoute(c.url, c.dynamicPath) != c.expectedResult {
 			failedCases[i] = c
 		} else {
 			t.Logf("PASSED [%d] - %s\n", i, c.name)

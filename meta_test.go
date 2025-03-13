@@ -51,7 +51,7 @@ func TestParseUrl(t *testing.T) {
 		meta := Meta{
 			Query: make(map[string]string),
 		}
-		meta.ParseUrl(c.url)
+		meta.ParseQueryParams(c.url)
 		if (!maps.Equal(meta.Query, c.expectedQueryParams)) == !c.shouldFail {
 			failedCases[i] = struct {
 				Meta

@@ -38,7 +38,7 @@ func (g *Goster) UseGlobal(m ...RequestHandler) {
 
 // Use adds middleware handlers that will be applied to specific routes/paths.
 func (g *Goster) Use(path string, m ...RequestHandler) {
-	cleanURLPath(&path)
+	cleanPath(&path)
 	g.Middleware[path] = m
 }
 
@@ -103,34 +103,37 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	// Parse the URL and extract query parameters into the Meta struct
-	reqURL := ctx.Request.URL.String()
-	reqMethod := ctx.Request.Method
+	urlPath := ctx.Request.URL.String()
+	method := ctx.Request.Method
 	DefaultHeader(&ctx)
 
 	// Construct a normal route from URL path if it matches a specific dynamic route
-	for urlPath, route := range g.Routes[reqMethod] {
+	for routePath, route := range g.Routes[method] {
 		if route.Type != "dynamic" {
 			continue
 		}
 
-		if g.resolveDynamicRoute(reqURL, urlPath, route) {
-			ctx.prepareMeta(reqURL, urlPath)
-			err := g.Routes.New(reqMethod, reqURL, route.Handler)
+		if matchesDynamicRoute(urlPath, routePath) {
+			ctx.Meta.ParseDynamicPath(urlPath, routePath)
+			err := g.Routes.New(method, urlPath, route.Handler)
 			if err != nil {
-				_ = fmt.Errorf("route %s is duplicate", reqURL) // TODO: it is duplicate, handle
+				_ = fmt.Errorf("route %s is duplicate", urlPath) // TODO: it is duplicate, handle
 			}
 			break
 		}
 	}
 
-	// Validate the route based on the HTTP method and URL path
-	status := g.validateRoute(reqMethod, reqURL)
+	// Parses query params if any and adds them to query map
+	ctx.Meta.ParseQueryParams(urlPath)
+
+	// Validate the route based on the HTTP method and URL
+	status := g.validateRoute(method, urlPath)
 	if status != http.StatusOK {
 		ctx.Response.WriteHeader(status)
 		return
 	}
 
-	g.launchHandler(&ctx, reqMethod, reqURL)
+	g.launchHandler(&ctx, method, urlPath)
 	// Execute global middleware handlers
 	for _, middleware := range g.Middleware["*"] {
 		err := middleware(&ctx)
@@ -143,11 +146,11 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // ------------------------------------------Private Methods--------------------------------------------------- //
 
 // launchHandler launches the necessary handler for the incoming request based on the route.
-func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
-	cleanURLPath(&reqURL)
+func (g *Goster) launchHandler(ctx *Ctx, method, urlPath string) {
+	cleanPath(&urlPath)
 	logRequest(ctx, g, nil) // TODO: streamline middleware
 
-	route := g.Routes[reqMethod][reqURL]
+	route := g.Routes[method][urlPath]
 	defer func() {
 		err := route.Handler(ctx)
 		// TODO: figure out what to do with handler error
@@ -156,18 +159,12 @@ func (g *Goster) launchHandler(ctx *Ctx, reqMethod, reqURL string) {
 		}
 	}()
 	// Run all route-specific middleware defined by the user
-	for _, rh := range g.Middleware[reqURL] {
+	for _, rh := range g.Middleware[urlPath] {
 		err := rh(ctx)
 		if err != nil {
 			LogError(fmt.Sprintf("error occured while running middleware: %s", err.Error()), g.Logger)
 		}
 	}
-}
-
-// resolveDynamicRoute constructs a normal route from URL path if it matches a specific dynamic route.
-func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bool {
-	cleanURLPath(&reqURL)
-	return g.isDynamicRouteMatch(reqURL, dynamicPath)
 }
 
 // validateRoute checks if the route "reqURL" exists inside the `g.Routes` collection
@@ -180,51 +177,18 @@ func (g *Goster) resolveDynamicRoute(reqURL, dynamicPath string, route Route) bo
 // If "reqURL" exists but not under the method "reqMethod", then the status `http.StatusMethodNotAllowed` is returned
 //
 // If "reqURL" doesn't exist then the status `http.StatusNotFound` is returned
-func (g *Goster) validateRoute(reqMethod, reqURL string) int {
-	cleanURLPath(&reqURL)
-	methodAllowed := false
-	routeExists := false
-
-	for method := range g.Routes {
-		if _, exists := g.Routes[method][reqURL]; exists && method == reqMethod {
-			routeExists = true
-			methodAllowed = true
-			break
-		} else if exists && method != reqMethod {
-			routeExists = true
+func (g *Goster) validateRoute(method, urlPath string) int {
+	cleanPath(&urlPath)
+	for m := range g.Routes {
+		_, exists := g.Routes[m][urlPath]
+		if exists && m == method {
+			return http.StatusOK
+		} else if exists && m != method {
+			return http.StatusMethodNotAllowed
 		}
 	}
 
-	if !routeExists {
-		return http.StatusNotFound
-	}
-
-	if !methodAllowed {
-		return http.StatusMethodNotAllowed
-	}
-	return http.StatusOK
-}
-
-// isDynamicRouteMatch checks URL path `reqURL` matches a Dynamic Route path
-// `dynamicPath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
-// is a catch-all identifier that matches any route with the same structure up to that point.
-//
-// Ex:
-//
-//	var ctx = ...
-//	var url = "path/anotherPath/andYetAnotherPath"
-//	var dynamicPath = "path/anotherPath/:identifier"
-//	if !isDynamicRouteMatch(&ctx, url, dynamicPath) {
-//			panic(...)
-//	}
-//
-// The above code will not panic as the isDynamicRouteMatch will evaluate to `true`
-func (g *Goster) isDynamicRouteMatch(reqURL string, dynamicPath string) (isDynamic bool) {
-	cleanURLPath(&reqURL)
-	cleanURLPath(&dynamicPath)
-
-	_, isDynamic = matchDynamicPath(dynamicPath, reqURL)
-	return
+	return http.StatusNotFound
 }
 
 func (g *Goster) cleanUp() {

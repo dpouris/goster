@@ -37,12 +37,12 @@ func (p *Path) Get(id string) (value string, exists bool) {
 
 // Pass in a `url` and see if there're parameters in it
 //
-// If there're, ParseUrl will construct a Params struct and populate Meta.Query.Params
+// If there're, ParseQueryParams will construct a Params struct and populate Meta.Query.Params
 //
-// If there aren't any, ParseUrl will return
+// If there aren't any, ParseQueryParams will return
 //
 // The `url` string reference that is passed in will have the parameters stripped in either case
-func (m *Meta) ParseUrl(url string) {
+func (m *Meta) ParseQueryParams(url string) {
 	paramValues := make(map[string]string, 0)
 	paramPattern := regexp.MustCompile(`\?.+(\/)?`)
 
@@ -68,10 +68,10 @@ func (m *Meta) ParseUrl(url string) {
 	}
 }
 
-func (m *Meta) ParseDynamicPath(reqURL, dynamicPath string) {
-	cleanURLPath(&reqURL)
-	cleanURLPath(&dynamicPath)
-	dynamicPaths, isDynamic := matchDynamicPath(dynamicPath, reqURL)
+func (m *Meta) ParseDynamicPath(url, urlPath string) {
+	cleanPath(&url)
+	cleanPath(&urlPath)
+	dynamicPaths, isDynamic := matchDynamicPath(url, urlPath)
 
 	if !isDynamic {
 		return
