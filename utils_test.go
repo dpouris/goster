@@ -44,7 +44,7 @@ func TestCleanPath(t *testing.T) {
 
 	failedCases := make(map[int]CleanPathCase, 0)
 	for i, c := range testCases {
-		cleanURLPath(&c.path)
+		cleanPath(&c.path)
 		if c.path != c.expectedPath {
 			failedCases[i] = c
 		} else {

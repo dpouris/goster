@@ -22,7 +22,7 @@ func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
 
 		// register a GET route that serves the static file
 		routePath := filepath.Join(dir, relPath)
-		cleanURLPath(&routePath)
+		cleanPath(&routePath)
 		err = rs.New("GET", routePath, func(ctx *Ctx) error {
 			return staticFileHandler(ctx, file)
 		})
@@ -48,7 +48,7 @@ func (rs *Routes) New(method string, url string, handler RequestHandler) (err er
 		routeType = "dynamic"
 	}
 
-	cleanURLPath(&url)
+	cleanPath(&url)
 
 	(*rs)[method][url] = Route{Type: routeType, Handler: handler}
 

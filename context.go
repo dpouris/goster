@@ -123,11 +123,3 @@ func (c *Ctx) JSON(j any) (err error) {
 	_, err = c.Response.Write(v)
 	return
 }
-
-func (c *Ctx) prepareMeta(url string, dynamicPath ...string) {
-	c.Meta.ParseUrl(url)
-
-	if len(dynamicPath) > 0 {
-		c.Meta.ParseDynamicPath(url, dynamicPath[0])
-	}
-}

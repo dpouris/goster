@@ -16,9 +16,9 @@ func DefaultHeader(c *Ctx) {
 	c.Response.Header().Set("Keep-Alive", "timeout=5, max=997")
 }
 
-// cleanURLPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
+// cleanPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
 // they will be removed as well.
-func cleanURLPath(path *string) {
+func cleanPath(path *string) {
 	if len(*path) == 0 {
 		return
 	}
@@ -30,22 +30,45 @@ func cleanURLPath(path *string) {
 	*path = strings.TrimSuffix(*path, "/")
 }
 
-func matchDynamicPath(dynamicPath, url string) (dp []DynamicPath, isDynamic bool) {
-	dynamicPathSlice := strings.Split(dynamicPath, "/")
-	urlSlice := strings.Split(url, "/")
+// matchesDynamicRoute checks URL path `reqURL` matches a Dynamic Route path
+// `dynamicPath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
+// is a catch-all identifier that matches any route with the same structure up to that point.
+//
+// Ex:
+//
+//	var ctx = ...
+//	var url = "path/anotherPath/andYetAnotherPath"
+//	var dynamicPath = "path/anotherPath/:identifier"
+//	if !matchesDynamicRoute(&ctx, url, dynamicPath) {
+//			panic(...)
+//	}
+//
+// The above code will not panic as the matchesDynamicRoute will evaluate to `true`
+func matchesDynamicRoute(urlPath string, routePath string) (isDynamic bool) {
+	cleanPath(&urlPath)
+	cleanPath(&routePath)
 
-	if len(dynamicPathSlice) != len(urlSlice) {
+	_, isDynamic = matchDynamicPath(urlPath, routePath)
+	return
+}
+
+func matchDynamicPath(urlPath, routePath string) (dp []DynamicPath, isDynamic bool) {
+	routePathSlice := strings.Split(routePath, "/")
+	urlSlice := strings.Split(urlPath, "/")
+
+	if len(routePathSlice) != len(urlSlice) {
 		return nil, false
 	}
 
 	hasDynamic := false
 	dp = []DynamicPath{}
-	for i, seg := range dynamicPathSlice {
+	for i, seg := range routePathSlice {
 		if strings.HasPrefix(seg, ":") {
 			hasDynamic = true
+			dynamicValue := strings.Split(urlSlice[i], "?")[0]
 			dp = append(dp, DynamicPath{
 				path:  strings.TrimPrefix(seg, ":"),
-				value: urlSlice[i],
+				value: dynamicValue,
 			})
 		} else if seg != urlSlice[i] {
 			// static segment doesn't match
