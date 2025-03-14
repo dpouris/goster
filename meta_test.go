@@ -41,6 +41,16 @@ func TestParseUrl(t *testing.T) {
 			},
 			shouldFail: true,
 		},
+		{
+			name: "4",
+			url:  "/var/home?name=dimitris&name=gearge&age=24&isAdmin",
+			expectedQueryParams: map[string]string{
+				"name":    "gearge",
+				"age":     "24",
+				"isAdmin": "",
+			},
+			shouldFail: false,
+		},
 	}
 
 	failedCases := make(map[int]struct {

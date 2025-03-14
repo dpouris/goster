@@ -61,6 +61,7 @@ func (m *Meta) ParseQueryParams(url string) {
 		query := strings.Split(v, "=")
 
 		if len(query) == 1 {
+			paramValues[query[0]] = ""
 			continue
 		}
 
