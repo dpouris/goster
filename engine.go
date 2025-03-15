@@ -141,7 +141,7 @@ func (e *Engine) SetStaticDir(path string) (err error) {
 		if !d.IsDir() {
 			// compute the route path relative to the static directory
 			relPath, _ := filepath.Rel(staticPath, filePath)
-			cleanURLPath(&relPath)
+			cleanPath(&relPath)
 
 			staticFileMap[relPath] = filePath
 		}

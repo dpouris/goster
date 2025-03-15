@@ -41,6 +41,16 @@ func TestParseUrl(t *testing.T) {
 			},
 			shouldFail: true,
 		},
+		{
+			name: "4",
+			url:  "/var/home?name=dimitris&name=gearge&age=24&isAdmin",
+			expectedQueryParams: map[string]string{
+				"name":    "gearge",
+				"age":     "24",
+				"isAdmin": "",
+			},
+			shouldFail: false,
+		},
 	}
 
 	failedCases := make(map[int]struct {
@@ -51,7 +61,7 @@ func TestParseUrl(t *testing.T) {
 		meta := Meta{
 			Query: make(map[string]string),
 		}
-		meta.ParseUrl(c.url)
+		meta.ParseQueryParams(c.url)
 		if (!maps.Equal(meta.Query, c.expectedQueryParams)) == !c.shouldFail {
 			failedCases[i] = struct {
 				Meta
