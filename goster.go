@@ -103,9 +103,16 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	// Parse the URL and extract query parameters into the Meta struct
-	urlPath := ctx.Request.URL.String()
+	urlPath := ctx.Request.URL.EscapedPath()
 	method := ctx.Request.Method
 	DefaultHeader(&ctx)
+
+	// Validate the route based on the HTTP method and URL
+	status := g.validateRoute(method, urlPath)
+	if status != http.StatusOK {
+		ctx.Response.WriteHeader(status)
+		return
+	}
 
 	// Construct a normal route from URL path if it matches a specific dynamic route
 	for routePath, route := range g.Routes[method] {
@@ -124,16 +131,8 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parses query params if any and adds them to query map
-	ctx.Meta.ParseQueryParams(urlPath)
+	ctx.Meta.ParseQueryParams(r.URL.String())
 
-	// Validate the route based on the HTTP method and URL
-	status := g.validateRoute(method, urlPath)
-	if status != http.StatusOK {
-		ctx.Response.WriteHeader(status)
-		return
-	}
-
-	g.launchHandler(&ctx, method, urlPath)
 	// Execute global middleware handlers
 	for _, middleware := range g.Middleware["*"] {
 		err := middleware(&ctx)
@@ -141,6 +140,9 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			LogError(fmt.Sprintf("error occured while running global middleware: %s", err.Error()), g.Logger)
 		}
 	}
+	logRequest(&ctx, g, nil) // TODO: streamline builtin middleware
+
+	g.launchHandler(&ctx, method, urlPath)
 }
 
 // ------------------------------------------Private Methods--------------------------------------------------- //
@@ -148,8 +150,6 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // launchHandler launches the necessary handler for the incoming request based on the route.
 func (g *Goster) launchHandler(ctx *Ctx, method, urlPath string) {
 	cleanPath(&urlPath)
-	logRequest(ctx, g, nil) // TODO: streamline middleware
-
 	route := g.Routes[method][urlPath]
 	defer func() {
 		err := route.Handler(ctx)
