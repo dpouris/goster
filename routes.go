@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+const (
+	Static   = "static"
+	Dynamic  = "dynamic"
+	Wildcard = "wildcard"
+)
+
 // Route represents an HTTP route with a type and a handler function.
 type Route struct {
 	Type    string         // Type specifies the type of the route (e.g., Static, Dynamic, Wildcard).

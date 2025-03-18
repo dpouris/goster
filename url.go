@@ -1,160 +1,158 @@
 package goster
 
 import (
-	"path"
-	"slices"
 	"strings"
 )
 
+// SegmentType distinguishes different segment types
+type SegmentType int
+
 const (
-	Static   = "static"
-	Wildcard = "wildcard"
-	Dynamic  = "dynamic"
+	StaticSegment SegmentType = iota
+	DynamicSegment
+	WildcardSegment
 )
 
-type element struct {
-	Value, Type string
+// RouteSegment represents one part of a route
+type RouteSegment struct {
+	Raw  string      // The original string (e.g. "users", ":id", "*filepath")
+	Type SegmentType // Whether it’s static, dynamic, or wildcard
+	// For dynamic and wildcard segments, Name holds the identifier (without ':' or '*')
+	Name string
 }
 
-// urlMatchesRoute checks URL path `urlPath` matches a Route path
-// `routePath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
-// is a catch-all identifier that matches any route with the same structure up to that point.
+// NewRouteSegment parses a single segment string
+func NewRouteSegment(s string) RouteSegment {
+	if len(s) > 0 {
+		switch s[0] {
+		case ':':
+			return RouteSegment{Raw: s, Type: DynamicSegment, Name: s[1:]}
+		case '*':
+			// For a bare "*" we treat Name as empty and do not capture any parameter
+			return RouteSegment{Raw: s, Type: WildcardSegment, Name: s[1:]}
+		}
+	}
+	return RouteSegment{Raw: s, Type: StaticSegment}
+}
+
+// RoutePattern holds the parsed route
+type RoutePattern struct {
+	Segments []RouteSegment
+}
+
+// NewRoutePattern pre-parses a route string (e.g. "/users/:id" or "/static/*") into a RoutePattern
+func NewRoutePattern(route string) RoutePattern {
+	cleanPath(&route)
+	route = strings.TrimPrefix(route, "/")
+	parts := strings.Split(route, "/")
+	segments := make([]RouteSegment, len(parts))
+	for i, part := range parts {
+		segments[i] = NewRouteSegment(part)
+	}
+	return RoutePattern{Segments: segments}
+}
+
+// Match checks whether the provided URL matches the pattern
 //
-// Ex:
-//
-//	var ctx = ...
-//	var url = "path/anotherPath/andYetAnotherPath"
-//	var dynamicPath = "path/anotherPath/:identifier"
-//	if !urlMatchesRoute(&ctx, url, dynamicPath) {
-//			panic(...)
-//	}
-//
-// The above code will not panic as the urlMatchesRoute will evaluate to `true`
+// If matched, it returns a map of captured parameters (for dynamic or wildcard segments)
+// but wildcard segments with an empty identifier are not captured
+func (rp RoutePattern) Match(url string) (bool, map[string]string) {
+	cleanPath(&url)
+	url = strings.TrimPrefix(url, "/")
+	urlParts := strings.Split(url, "/")
+	params := make(map[string]string)
+
+	i, j := 0, 0 // i for urlParts, j for rp.Segments
+	for j < len(rp.Segments) {
+		seg := rp.Segments[j]
+		switch seg.Type {
+		case StaticSegment:
+			// if no URL part or it doesnt match then no match
+			if i >= len(urlParts) || urlParts[i] != seg.Raw {
+				return false, nil
+			}
+			i++
+			j++
+		case DynamicSegment:
+			// a dynamic segment matches exactly one non-empty URL part
+			if i >= len(urlParts) || urlParts[i] == "" {
+				return false, nil
+			}
+			params[seg.Name] = urlParts[i]
+			i++
+			j++
+		case WildcardSegment:
+			// a wildcard can match zero or more segments
+			// If it is the last segment, capture the remainder (if an identifier is provided)
+			if j == len(rp.Segments)-1 {
+				captured := strings.Join(urlParts[i:], "/")
+				if captured != "" && captured[0] != '/' {
+					captured = "/" + captured
+				}
+				if seg.Name != "" {
+					params[seg.Name] = captured
+				}
+				i = len(urlParts)
+				j++
+				break
+			}
+			// ff not last capture until the next static segment is found
+			nextSeg := rp.Segments[j+1]
+			found := false
+			var k int
+			for k = i; k < len(urlParts); k++ {
+				if nextSeg.Type == StaticSegment && urlParts[k] == nextSeg.Raw {
+					captured := strings.Join(urlParts[i:k], "/")
+					if captured != "" && captured[0] != '/' {
+						captured = "/" + captured
+					}
+					if seg.Name != "" {
+						params[seg.Name] = captured
+					}
+					i = k // move the url pointer to the boundary
+					found = true
+					break
+				}
+			}
+			if !found {
+				// capture the rest if no boundary is found
+				captured := strings.Join(urlParts[i:], "/")
+				if captured != "" && captured[0] != '/' {
+					captured = "/" + captured
+				}
+				if seg.Name != "" {
+					params[seg.Name] = captured
+				}
+				i = len(urlParts)
+				j++
+				break
+			}
+			j++
+		}
+	}
+	// ensure all url parts were consumed
+	if i != len(urlParts) {
+		return false, nil
+	}
+	return true, params
+}
+
+// urlMatchesRoute is a simple helper that returns whether urlPath matches routePath
 func urlMatchesRoute(urlPath string, routePath string) bool {
-	cleanPath(&urlPath)
-	cleanPath(&routePath)
-	urlSlice := strings.Split(urlPath[1:], "/")
-	routeSlice := strings.Split(routePath[1:], "/")
-	pathElements := constructPathElements(routeSlice) // idx -> pathElement
-
-	if len(routeSlice) > len(urlSlice) && !strings.Contains(routePath, "*") { // doesn't match, return
-		return false
-	}
-
-	skip := 0
-	for i, v := range urlSlice {
-		if skip > 0 {
-			skip -= 1
-			continue
-		}
-
-		currentElement, exists := pathElements[i]
-		if !exists { // doesn't match, return
-			return false
-		}
-
-		switch currentElement.Type {
-		case Dynamic:
-			continue
-
-		case Wildcard:
-			nextElem := pathElements[i+1]
-			if nextElem.Type == Static { // go until static element
-				wildcardEnd := slices.Index(urlSlice[i:], nextElem.Value)
-				if wildcardEnd == -1 { // doesn't match return
-					return false
-				}
-				// skip i to wildcardEnd
-				skip = wildcardEnd
-				continue
-			}
-			return true
-
-		case Static:
-			if pathElements[i].Value != v { // doesn't match, return
-				return false
-			}
-		}
-	}
-
-	return true
+	rp := NewRoutePattern(routePath)
+	matched, _ := rp.Match(urlPath)
+	return matched
 }
 
+// constructElements extracts captured dynamic/wildcard parameters as a slice of PathValues
 func constructElements(urlPath, routePath string) (pv []PathValues) {
-	urlSlice := strings.Split(urlPath[1:], "/")
-	routeSlice := strings.Split(routePath[1:], "/")
-	pathElements := constructPathElements(routeSlice) // idx -> pathElement
-	pv = make([]PathValues, 0)
-
-	skip := 0
-	for i, v := range urlSlice {
-		if skip > 0 {
-			skip -= 1
-			continue
-		}
-
-		currentElement, exists := pathElements[i]
-		if !exists { // doesn't match, return
-			return
-		}
-
-		switch currentElement.Type {
-		case Dynamic:
-			pv = append(pv, PathValues{strings.TrimPrefix(pathElements[i].Value, ":"), strings.Split(v, "?")[0]})
-			continue
-
-		case Wildcard:
-			// two cases:
-			// 1. the wildcard match stops when a static element is hit
-			// 2. the wildcard match spans the rest of urlPath
-
-			// check if case 1 is true, theres a static element after the wildcard
-			var wildcardPath []string
-			nextElem := pathElements[i+1]
-			if nextElem.Type == Static { // go until static element
-				staticElemIdx := (slices.Index(urlSlice[i:], nextElem.Value)) + i
-				if staticElemIdx <= 0 { // doesn't match return
-					return
-				}
-				skip = staticElemIdx
-				wildcardPath = urlSlice[i:staticElemIdx]
-			} else { // spans the rest urlPath
-				wildcardPath = urlSlice[i:]
-			}
-
-			if len(pathElements[i].Value) == 1 { // no identifier, skip
-				continue
-			}
-			// the wildcard has an identifier, assign it
-			p := path.Join(wildcardPath...)
-			cleanPath(&p)
-			pv = append(pv, PathValues{strings.TrimPrefix(pathElements[i].Value, "*"), p})
-			continue
-
-		case Static:
-			if pathElements[i].Value != v { // doesn't match, return
-				return
-			}
-		}
+	rp := NewRoutePattern(routePath)
+	matched, params := rp.Match(urlPath)
+	if !matched {
+		return nil
 	}
-
-	return
-}
-
-func constructPathElements(routeSlice []string) map[int]element {
-	// idx -> pathElement
-	elems := make(map[int]element, 0)
-	for i, v := range routeSlice {
-		var t string
-		if strings.HasPrefix(v, "*") {
-			t = Wildcard
-		} else if strings.HasPrefix(v, ":") {
-			t = Dynamic
-		} else {
-			t = Static
-		}
-		elems[i] = element{v, t}
+	for k, v := range params {
+		pv = append(pv, PathValues{Key: k, Value: v})
 	}
-
-	return elems
+	return pv
 }
