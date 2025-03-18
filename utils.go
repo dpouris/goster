@@ -57,14 +57,24 @@ func urlMatchesRoute(urlPath string, routePath string) bool {
 	routeSlice := strings.Split(routePath[1:], "/")
 	pathElements := constructPathElements(routeSlice) // idx -> pathElement
 
-	// fmt.Printf("\nFor url slice: %v\nRouteSlice: %v\nElems: %v\n", urlSlice, routeSlice, pathElements)
+	if len(routeSlice) > len(urlSlice) && !strings.Contains(routePath, "*") { // doesn't match, return
+		return false
+	}
+
+	// fmt.Printf("\nFor url slice: %v\nPath Elements: %v\n", urlSlice, pathElements)
 	skip := 0
 	for i, v := range urlSlice {
 		if skip > 0 {
 			skip -= 1
 			continue
 		}
-		switch pathElements[i].t {
+
+		currentElement, exists := pathElements[i]
+		if !exists { // doesn't match, return
+			return false
+		}
+
+		switch currentElement.t {
 		case TypeDynamic:
 			continue
 
@@ -72,13 +82,14 @@ func urlMatchesRoute(urlPath string, routePath string) bool {
 			nextElem := pathElements[i+1]
 			if nextElem.t == TypeStatic { // go until static element
 				wildcardEnd := slices.Index(urlSlice[i:], nextElem.v)
-				// skip i to wildcardEnd
 				if wildcardEnd == -1 { // doesn't match return
 					return false
 				}
+				// skip i to wildcardEnd
 				skip = wildcardEnd
+				continue
 			}
-			continue
+			return true
 
 		case TypeStatic:
 			if pathElements[i].v != v { // doesn't match, return
@@ -102,7 +113,13 @@ func findPathValues(urlPath, routePath string) (pv []PathValues) {
 			skip -= 1
 			continue
 		}
-		switch pathElements[i].t {
+
+		currentElement, exists := pathElements[i]
+		if !exists { // doesn't match, return
+			return
+		}
+
+		switch currentElement.t {
 		case TypeDynamic:
 			pv = append(pv, PathValues{strings.TrimPrefix(pathElements[i].v, ":"), strings.Split(v, "?")[0]})
 			continue

@@ -257,7 +257,7 @@ TestCase:
 			newUrlSlice = append(newUrlSlice, seg)
 		}
 
-		newUrl := (path.Join(newUrlSlice...))
+		newUrl := path.Join(newUrlSlice...)
 		testUrl, _ := url.JoinPath("https://test.com", newUrl)
 		ctx := NewContextCreation(testUrl)
 
