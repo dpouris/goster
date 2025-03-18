@@ -14,12 +14,6 @@ type Goster struct {
 	Logs       []string                    // Logs stores logs for future reference.
 }
 
-// Route represents an HTTP route with a type and a handler function.
-type Route struct {
-	Type    string         // Type specifies the type of the route (e.g., "static", "dynamic").
-	Handler RequestHandler // Handler is the function that handles the route.
-}
-
 // RequestHandler is a type for functions that handle HTTP requests within a given context.
 type RequestHandler func(ctx *Ctx) error
 
@@ -31,7 +25,7 @@ func NewServer() *Goster {
 	return g
 }
 
-// UseGlobal adds middleware handlers that will be applied to every single request.
+// UseGlobal adds middleware handlers that will be applied to every single incoming request.
 func (g *Goster) UseGlobal(m ...RequestHandler) {
 	g.Middleware["*"] = append(g.Middleware["*"], m...)
 }
@@ -94,40 +88,33 @@ func (g *Goster) StartTLS(addr string, certFile string, keyFile string) {
 // ServeHTTP is the handler for incoming HTTP requests to the server.
 // It parses the request, manages routing, and is required to implement the http.Handler interface.
 func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := Ctx{
-		Request:  r,
-		Response: Response{w},
-		Meta: Meta{
-			Query: make(map[string]string),
-			Path:  make(map[string]string),
-		},
-	}
+	ctx := NewContext(r, w)
 	// Parse the URL and extract query parameters into the Meta struct
 	urlPath := ctx.Request.URL.EscapedPath()
 	method := ctx.Request.Method
 	DefaultHeader(&ctx)
 
-	// Validate the route based on the HTTP method and URL
-	status := g.validateRoute(method, urlPath)
-	if status != http.StatusOK {
-		ctx.Response.WriteHeader(status)
-		return
-	}
-
-	// Construct a normal route from URL path if it matches a specific dynamic route
+	// Construct a static route from URL path if it matches a specific dynamic or wildcard route
 	for routePath, route := range g.Routes[method] {
-		if route.Type != "dynamic" {
+		if route.Type == Static {
 			continue
 		}
 
-		if matchesDynamicRoute(urlPath, routePath) {
-			ctx.Meta.ParseDynamicPath(urlPath, routePath)
+		if urlMatchesRoute(urlPath, routePath) {
+			ctx.Meta.ParsePath(urlPath, routePath)
 			err := g.Routes.New(method, urlPath, route.Handler)
 			if err != nil {
 				_ = fmt.Errorf("route %s is duplicate", urlPath) // TODO: it is duplicate, handle
 			}
 			break
 		}
+	}
+
+	// Validate the route based on the HTTP method and URL
+	status := g.validateRoute(method, urlPath)
+	if status != http.StatusOK {
+		ctx.Response.WriteHeader(status)
+		return
 	}
 
 	// Parses query params if any and adds them to query map

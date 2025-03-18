@@ -10,9 +10,9 @@ type Meta struct {
 	Path  Path
 }
 
-type DynamicPath struct {
-	path  string
-	value string
+type PathValues struct {
+	Key   string
+	Value string
 }
 
 type Params map[string]string
@@ -69,16 +69,12 @@ func (m *Meta) ParseQueryParams(url string) {
 	}
 }
 
-func (m *Meta) ParseDynamicPath(url, urlPath string) {
+func (m *Meta) ParsePath(url, urlPath string) {
 	cleanPath(&url)
 	cleanPath(&urlPath)
-	dynamicPaths, isDynamic := matchDynamicPath(url, urlPath)
-
-	if !isDynamic {
-		return
-	}
+	dynamicPaths := constructElements(url, urlPath)
 
 	for _, dynamicPath := range dynamicPaths {
-		m.Path[dynamicPath.path] = dynamicPath.value
+		m.Path[dynamicPath.Key] = dynamicPath.Value
 	}
 }

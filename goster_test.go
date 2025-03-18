@@ -72,7 +72,7 @@ func TestIsDynamicRoute(t *testing.T) {
 
 	failedCases := make(map[int]IsDynamicRouteCase, 0)
 	for i, c := range testCases {
-		if matchesDynamicRoute(c.url, c.dynamicPath) != c.expectedResult {
+		if urlMatchesRoute(c.url, c.dynamicPath) != c.expectedResult {
 			failedCases[i] = c
 		} else {
 			t.Logf("PASSED [%d] - %s\n", i, c.name)

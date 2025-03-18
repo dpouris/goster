@@ -8,31 +8,19 @@ import (
 	"strings"
 )
 
-type Routes map[string]map[string]Route
+const (
+	Static   = "static"
+	Dynamic  = "dynamic"
+	Wildcard = "wildcard"
+)
 
-func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
-	staticPaths := engine.Config.StaticFilePaths
-	for relPath := range staticPaths {
-		staticPath := staticPaths[relPath]
-		file, err := os.Open(staticPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "cannot open static file `%s`\n", file.Name())
-			return err
-		}
-
-		// register a GET route that serves the static file
-		routePath := filepath.Join(dir, relPath)
-		cleanPath(&routePath)
-		err = rs.New("GET", routePath, func(ctx *Ctx) error {
-			return staticFileHandler(ctx, file)
-		})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "couldn't add route `%s`. Most likely there's a duplicate entry\n", routePath)
-		}
-	}
-
-	return
+// Route represents an HTTP route with a type and a handler function.
+type Route struct {
+	Type    string         // Type specifies the type of the route (e.g., Static, Dynamic, Wildcard).
+	Handler RequestHandler // Handler is the function that handles the route.
 }
+
+type Routes map[string]map[string]Route
 
 // New creates a new Route for the specified method and url using the provided handler. If the Route already exists an error is returned.
 func (rs *Routes) New(method string, url string, handler RequestHandler) (err error) {
@@ -43,13 +31,14 @@ func (rs *Routes) New(method string, url string, handler RequestHandler) (err er
 		}
 	}
 
-	routeType := "normal"
+	routeType := Static
 	if strings.Contains(url, ":") {
-		routeType = "dynamic"
+		routeType = Dynamic
+	} else if strings.Contains(url, "*") {
+		routeType = Wildcard
 	}
 
 	cleanPath(&url)
-
 	(*rs)[method][url] = Route{Type: routeType, Handler: handler}
 
 	return
@@ -78,6 +67,30 @@ func (g *Goster) Put(path string, handler RequestHandler) error {
 // Delete creates a new Route under the DELETE method for `path`. If the Route aleady exists an error is returned.
 func (g *Goster) Delete(path string, handler RequestHandler) error {
 	return g.Routes.New("DELETE", path, handler)
+}
+
+func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
+	staticPaths := engine.Config.StaticFilePaths
+	for relPath := range staticPaths {
+		staticPath := staticPaths[relPath]
+		file, err := os.Open(staticPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open static file `%s`\n", file.Name())
+			return err
+		}
+
+		// register a GET route that serves the static file
+		routePath := filepath.Join(dir, relPath)
+		cleanPath(&routePath)
+		err = rs.New("GET", routePath, func(ctx *Ctx) error {
+			return staticFileHandler(ctx, file)
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "couldn't add route `%s`. Most likely there's a duplicate entry\n", routePath)
+		}
+	}
+
+	return
 }
 
 func staticFileHandler(ctx *Ctx, file *os.File) (err error) {
