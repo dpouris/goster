@@ -6,12 +6,6 @@ import (
 	"net/http"
 )
 
-const (
-	TypeStatic   = "static"
-	TypeDynamic  = "dynamic"
-	TypeWildcard = "wildcard"
-)
-
 // Goster is the main structure of the package. It handles the addition of new routes and middleware, and manages logging.
 type Goster struct {
 	Routes     Routes                      // Routes is a map of HTTP methods to their respective route handlers.
@@ -102,7 +96,7 @@ func (g *Goster) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Construct a static route from URL path if it matches a specific dynamic or wildcard route
 	for routePath, route := range g.Routes[method] {
-		if route.Type == TypeStatic {
+		if route.Type == Static {
 			continue
 		}
 
