@@ -6,20 +6,24 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // Adds basic headers
 func DefaultHeader(c *Ctx) {
+	// TODO: refactor
 	c.Response.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Response.Header().Set("Connection", "Keep-Alive")
 	c.Response.Header().Set("Keep-Alive", "timeout=5, max=997")
 }
 
-// cleanPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing. If the URL contains Query Parameters or Anchors,
-// they will be removed as well.
+// cleanPath sanatizes a URL path. It removes suffix '/' if any and adds prefix '/' if missing
 func cleanPath(path *string) {
 	if len(*path) == 0 {
+		*path = "/"
 		return
 	}
 
@@ -27,11 +31,13 @@ func cleanPath(path *string) {
 		*path = "/" + *path
 	}
 
-	*path = strings.TrimSuffix(*path, "/")
+	if len(*path) != 1 {
+		*path = strings.TrimSuffix(*path, "/")
+	}
 }
 
-// matchesDynamicRoute checks URL path `reqURL` matches a Dynamic Route path
-// `dynamicPath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
+// urlMatchesRoute checks URL path `urlPath` matches a Route path
+// `routePath`. A Dynamic Route is a path string that has the following format: "path/anotherPath/:variablePathname" where `:variablePathname`
 // is a catch-all identifier that matches any route with the same structure up to that point.
 //
 // Ex:
@@ -39,44 +45,122 @@ func cleanPath(path *string) {
 //	var ctx = ...
 //	var url = "path/anotherPath/andYetAnotherPath"
 //	var dynamicPath = "path/anotherPath/:identifier"
-//	if !matchesDynamicRoute(&ctx, url, dynamicPath) {
+//	if !urlMatchesRoute(&ctx, url, dynamicPath) {
 //			panic(...)
 //	}
 //
-// The above code will not panic as the matchesDynamicRoute will evaluate to `true`
-func matchesDynamicRoute(urlPath string, routePath string) (isDynamic bool) {
+// The above code will not panic as the urlMatchesRoute will evaluate to `true`
+func urlMatchesRoute(urlPath string, routePath string) bool {
 	cleanPath(&urlPath)
 	cleanPath(&routePath)
+	urlSlice := strings.Split(urlPath[1:], "/")
+	routeSlice := strings.Split(routePath[1:], "/")
+	pathElements := constructPathElements(routeSlice) // idx -> pathElement
 
-	_, isDynamic = matchDynamicPath(urlPath, routePath)
-	return
-}
+	// fmt.Printf("\nFor url slice: %v\nRouteSlice: %v\nElems: %v\n", urlSlice, routeSlice, pathElements)
+	skip := 0
+	for i, v := range urlSlice {
+		if skip > 0 {
+			skip -= 1
+			continue
+		}
+		switch pathElements[i].t {
+		case TypeDynamic:
+			continue
 
-func matchDynamicPath(urlPath, routePath string) (dp []DynamicPath, isDynamic bool) {
-	routePathSlice := strings.Split(routePath, "/")
-	urlSlice := strings.Split(urlPath, "/")
+		case TypeWildcard:
+			nextElem := pathElements[i+1]
+			if nextElem.t == TypeStatic { // go until static element
+				wildcardEnd := slices.Index(urlSlice[i:], nextElem.v)
+				// skip i to wildcardEnd
+				if wildcardEnd == -1 { // doesn't match return
+					return false
+				}
+				skip = wildcardEnd
+			}
+			continue
 
-	if len(routePathSlice) != len(urlSlice) {
-		return nil, false
-	}
-
-	hasDynamic := false
-	dp = []DynamicPath{}
-	for i, seg := range routePathSlice {
-		if strings.HasPrefix(seg, ":") {
-			hasDynamic = true
-			dynamicValue := strings.Split(urlSlice[i], "?")[0]
-			dp = append(dp, DynamicPath{
-				path:  strings.TrimPrefix(seg, ":"),
-				value: dynamicValue,
-			})
-		} else if seg != urlSlice[i] {
-			// static segment doesn't match
-			return nil, false
+		case TypeStatic:
+			if pathElements[i].v != v { // doesn't match, return
+				return false
+			}
 		}
 	}
 
-	return dp, hasDynamic
+	return true
+}
+
+func findPathValues(urlPath, routePath string) (pv []PathValues) {
+	urlSlice := strings.Split(urlPath[1:], "/")
+	routeSlice := strings.Split(routePath[1:], "/")
+	pathElements := constructPathElements(routeSlice) // idx -> pathElement
+	pv = make([]PathValues, 0)
+
+	skip := 0
+	for i, v := range urlSlice {
+		if skip > 0 {
+			skip -= 1
+			continue
+		}
+		switch pathElements[i].t {
+		case TypeDynamic:
+			pv = append(pv, PathValues{strings.TrimPrefix(pathElements[i].v, ":"), strings.Split(v, "?")[0]})
+			continue
+
+		case TypeWildcard:
+			// two cases:
+			// 1. the wildcard match stops when a static element is hit
+			// 2. the wildcard match spans the rest of urlPath
+
+			// check if case 1 is true, theres a static element after the wildcard
+			var wildcardPath []string
+			nextElem := pathElements[i+1]
+			if nextElem.t == TypeStatic { // go until static element
+				staticElemIdx := (slices.Index(urlSlice[i:], nextElem.v)) + i
+				if staticElemIdx <= 0 { // doesn't match return
+					return
+				}
+				skip = staticElemIdx
+				wildcardPath = urlSlice[i:staticElemIdx]
+			} else { // spans the rest urlPath
+				wildcardPath = urlSlice[i:]
+			}
+
+			if len(pathElements[i].v) == 1 { // no identifier, skip
+				continue
+			}
+			// the wildcard has an identifier, assign it
+			p := path.Join(wildcardPath...)
+			cleanPath(&p)
+			pv = append(pv, PathValues{strings.TrimPrefix(pathElements[i].v, "*"), p})
+			continue
+
+		case TypeStatic:
+			if pathElements[i].v != v { // doesn't match, return
+				return
+			}
+		}
+	}
+
+	return
+}
+
+func constructPathElements(routeSlice []string) map[int]struct{ v, t string } {
+	// idx -> pathElement
+	elems := make(map[int]struct{ v, t string }, 0)
+	for i, v := range routeSlice {
+		var t string
+		if strings.HasPrefix(v, "*") {
+			t = TypeWildcard
+		} else if strings.HasPrefix(v, ":") {
+			t = TypeDynamic
+		} else {
+			t = TypeStatic
+		}
+		elems[i] = struct{ v, t string }{v, t}
+	}
+
+	return elems
 }
 
 func getContentType(filename string) string {
@@ -102,6 +186,50 @@ func resolveAppPath(dir string) (string, error) {
 func pathExists(path string) (exists bool) {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func hexEscapeNonASCII(s string) string {
+	newLen := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			newLen += 3
+		} else {
+			newLen++
+		}
+	}
+	if newLen == len(s) {
+		return s
+	}
+	b := make([]byte, 0, newLen)
+	var pos int
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			if pos < i {
+				b = append(b, s[pos:i]...)
+			}
+			b = append(b, '%')
+			b = strconv.AppendInt(b, int64(s[i]), 16)
+			pos = i + 1
+		}
+	}
+	if pos < len(s) {
+		b = append(b, s[pos:]...)
+	}
+	return string(b)
+}
+
+var htmlReplacer = strings.NewReplacer(
+	"&", "&amp;",
+	"<", "&lt;",
+	">", "&gt;",
+	// "&#34;" is shorter than "&quot;".
+	`"`, "&#34;",
+	// "&#39;" is shorter than "&apos;" and apos was not in HTML until HTML5.
+	"'", "&#39;",
+)
+
+func htmlEscape(s string) string {
+	return htmlReplacer.Replace(s)
 }
 
 // func cleanEmptyBytes(b *[]byte) {

@@ -2,6 +2,9 @@ package goster
 
 import (
 	"errors"
+	"net/url"
+	"path"
+	"strings"
 	"testing"
 )
 
@@ -100,4 +103,198 @@ func TestAddStaticDir(t *testing.T) {
 	// }
 
 	t.Logf("TOTAL ROUTES in GET: %d", len(r["GET"]))
+}
+
+func TestWildcardRoutes(t *testing.T) {
+	g := NewServer()
+	testCases := []struct {
+		name         string
+		method       string
+		url          string
+		expectedType string
+		pathVars     map[string]string
+		expectErr    bool
+		handler      RequestHandler
+	}{
+		{
+			name:         "Dynamic Basic Route",
+			method:       "GET",
+			url:          "/users/:id",
+			expectedType: TypeDynamic,
+			pathVars:     map[string]string{"id": "1"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Dynamic Route with Trailing Slash",
+			method:       "GET",
+			url:          "/products/:productId/",
+			expectedType: TypeDynamic,
+			pathVars:     map[string]string{"productId": "1"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Dynamic Route with multiple path variables",
+			method:       "GET",
+			url:          "/products/:productId/edit",
+			expectedType: TypeDynamic,
+			pathVars:     map[string]string{"productId": "7"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Dynamic Route with multiple path variables alternating",
+			method:       "GET",
+			url:          "/logs/:logId/view/:iterationId",
+			expectedType: TypeDynamic,
+			pathVars:     map[string]string{"logId": "432", "iterationId": "2"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route",
+			method:       "GET",
+			url:          "/files/*filepath",
+			expectedType: TypeWildcard,
+			pathVars:     map[string]string{"filepath": "/movies/comedy/2012/MagicMike.mp4"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route index",
+			method:       "GET",
+			url:          "*",
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route index with leading slash and identifier",
+			method:       "GET",
+			url:          "/*path",
+			pathVars:     map[string]string{"path": "/hello/there"},
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static prefix",
+			method:       "GET",
+			url:          "/static/*",
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static prefix and identifier",
+			method:       "GET",
+			url:          "/static/*s",
+			expectedType: TypeWildcard,
+			pathVars:     map[string]string{"s": "/yo"},
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static suffix",
+			method:       "GET",
+			url:          "/*/any",
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static suffix and identifier",
+			method:       "GET",
+			url:          "/*some/any",
+			pathVars:     map[string]string{"some": "/yo/dj"},
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static suffix and prefix",
+			method:       "GET",
+			url:          "/static/*/styles",
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+		{
+			name:         "Wildcard Route with static suffix and prefix and identifier",
+			method:       "GET",
+			url:          "/static/*values/styles",
+			pathVars:     map[string]string{"values": "/docs/docsv1/kati"},
+			expectedType: TypeWildcard,
+			expectErr:    false,
+			handler:      func(ctx *Ctx) error { return nil },
+		},
+	}
+
+TestCase:
+	for i, tc := range testCases {
+		err := g.Routes.New(tc.method, tc.url, tc.handler)
+		if tc.expectErr {
+			if err == nil {
+				t.Errorf("FAILED [%d] - %s: expected error when adding wildcard route %q", i, tc.name, tc.url)
+			} else {
+				t.Logf("PASSED [%d] - %s: correctly rejected wildcard route %q", i, tc.name, tc.url)
+			}
+			continue
+		}
+
+		if err != nil {
+			t.Errorf("FAILED [%d] - %s: error adding route: %v", i, tc.name, err)
+			continue
+		}
+
+		newUrlSlice := make([]string, 0)
+		for _, seg := range strings.Split(tc.url, "/") {
+			if strings.HasPrefix(seg, ":") || strings.HasPrefix(seg, "*") {
+				newUrlSlice = append(newUrlSlice, tc.pathVars[seg[1:]])
+				continue
+			}
+			newUrlSlice = append(newUrlSlice, seg)
+		}
+
+		newUrl := (path.Join(newUrlSlice...))
+		testUrl, _ := url.JoinPath("https://test.com", newUrl)
+		ctx := NewContextCreation(testUrl)
+
+		cleanPath(&newUrl)
+		cleanPath(&tc.url)
+		if urlMatchesRoute(newUrl, tc.url) {
+			ctx.ParsePath(newUrl, tc.url)
+		} else {
+			t.Errorf("FAILED [%d] - %s: url %s doesn't match with any dynamic or wildcard route", i, tc.name, newUrl)
+		}
+
+		route, exists := g.Routes[tc.method][tc.url]
+		if !exists {
+			t.Errorf("FAILED [%d] - %s: route %q not found", i, tc.name, tc.url)
+			continue
+		} else if route.Type != tc.expectedType {
+			t.Errorf("FAILED [%d] - %s: expected route type %q, got %q", i, tc.name, tc.expectedType, route.Type)
+			continue
+		}
+
+		if len(ctx.Meta.Path) < len(tc.pathVars) {
+			t.Errorf("FAILED [%d] - %s: incorrect number of path vars. Expected %d, got %d", i, tc.name, len(tc.pathVars), len(ctx.Meta.Path))
+			continue
+		}
+		for k, v := range ctx.Meta.Path {
+			expectedValue, exists := tc.pathVars[k]
+			if !exists {
+				t.Errorf("FAILED [%d] - %s: path var %s not found", i, tc.name, k)
+				continue TestCase
+			}
+			if v != expectedValue {
+				t.Errorf("FAILED [%d] - %s: path var %s with value %s doesn't match expected value %s", i, tc.name, k, v, expectedValue)
+				continue TestCase
+			}
+		}
+		t.Logf("PASSED [%d] - %s", i, tc.name)
+	}
+
+	t.Logf("TOTAL DYNAMIC ROUTES in GET: %d", len(g.Routes["GET"]))
 }

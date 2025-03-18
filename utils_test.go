@@ -18,12 +18,12 @@ func TestCleanPath(t *testing.T) {
 		{
 			name:         "No path",
 			path:         "",
-			expectedPath: "",
+			expectedPath: "/",
 		},
 		{
 			name:         "Single slash",
 			path:         "/",
-			expectedPath: "",
+			expectedPath: "/",
 		},
 		{
 			name:         "A lot of slashes",

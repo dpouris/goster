@@ -6,15 +6,29 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	urlpkg "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 )
 
 type Ctx struct {
 	Request  *http.Request
 	Response Response
 	Meta
+}
+
+func NewContext(r *http.Request, w http.ResponseWriter) Ctx {
+	return Ctx{
+		Request:  r,
+		Response: Response{w},
+		Meta: Meta{
+			Query: make(map[string]string),
+			Path:  make(map[string]string),
+		},
+	}
 }
 
 // Send an HTML template t file to the client. If template not in template dir then will return error.
@@ -122,4 +136,59 @@ func (c *Ctx) JSON(j any) (err error) {
 	c.Response.Header().Set("Content-Type", "application/json")
 	_, err = c.Response.Write(v)
 	return
+}
+
+func (c *Ctx) Redirect(url string, code int) {
+	if u, err := urlpkg.Parse(url); err == nil {
+		// If url was relative, make its path absolute by
+		// combining with request path.
+		// The client would probably do this for us,
+		// but doing it ourselves is more reliable.
+		// See RFC 7231, section 7.1.2
+		if u.Scheme == "" && u.Host == "" {
+			oldpath := c.Request.URL.Path
+			if oldpath == "" { // should not happen, but avoid a crash if it does
+				oldpath = "/"
+			}
+
+			// no leading http://server
+			if url == "" || url[0] != '/' {
+				// make relative path absolute
+				olddir, _ := path.Split(oldpath)
+				url = olddir + url
+			}
+
+			var query string
+			if i := strings.Index(url, "?"); i != -1 {
+				url, query = url[:i], url[i:]
+			}
+
+			// clean up but preserve trailing slash
+			trailing := strings.HasSuffix(url, "/")
+			url = path.Clean(url)
+			if trailing && !strings.HasSuffix(url, "/") {
+				url += "/"
+			}
+			url += query
+		}
+	}
+
+	h := c.Response.Header()
+
+	// RFC 7231 notes that a short HTML body is usually included in
+	// the response because older user agents may not understand 301/307.
+	// Do it only if the request didn't already have a Content-Type headec.Request.
+	_, hadCT := h["Content-Type"]
+
+	h.Set("Location", hexEscapeNonASCII(url))
+	if !hadCT && (c.Request.Method == "GET" || c.Request.Method == "HEAD") {
+		h.Set("Content-Type", "text/html; charset=utf-8")
+	}
+	c.Response.WriteHeader(code)
+
+	// Shouldn't send the body for POST or HEAD; that leaves GET.
+	if !hadCT && c.Request.Method == "GET" {
+		body := "<a href=\"" + htmlEscape(url) + "\">" + http.StatusText(code) + "</a>.\n"
+		fmt.Fprintln(c.Response, body)
+	}
 }

@@ -8,6 +8,12 @@ import (
 	"strings"
 )
 
+// Route represents an HTTP route with a type and a handler function.
+type Route struct {
+	Type    string         // Type specifies the type of the route (e.g., TypeStatic, TypeDynamic, TypeWildcard).
+	Handler RequestHandler // Handler is the function that handles the route.
+}
+
 type Routes map[string]map[string]Route
 
 func (rs *Routes) prepareStaticRoutes(dir string) (err error) {
@@ -43,13 +49,14 @@ func (rs *Routes) New(method string, url string, handler RequestHandler) (err er
 		}
 	}
 
-	routeType := "normal"
+	routeType := TypeStatic
 	if strings.Contains(url, ":") {
-		routeType = "dynamic"
+		routeType = TypeDynamic
+	} else if strings.Contains(url, "*") {
+		routeType = TypeWildcard
 	}
 
 	cleanPath(&url)
-
 	(*rs)[method][url] = Route{Type: routeType, Handler: handler}
 
 	return
